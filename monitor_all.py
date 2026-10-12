@@ -108,7 +108,10 @@ def main():
  if result['state']=='possible': fresh=[x for k,x in current.items() if k not in prev]
  pushed=False
  if fresh and key:pushed=bark(key,fresh)
- if result['state']=='possible': result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed'); newactive=current
+ if result['state']=='possible':
+  result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed')
+  # Bark 失败时保留旧去重集合，下一轮继续重试，不把未送达车型标记为已通知。
+  newactive=current if (not fresh or pushed) else prev
  elif result['state']=='notfound': result['new_count']=0; result['push']='not_triggered'; newactive={}
  else: result['new_count']=0; result['push']='not_triggered'; newactive=prev
  result['active']=newactive; result['verified_utc']=result.get('verified_utc',now()); STATE.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n'); REPORT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
