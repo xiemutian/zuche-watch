@@ -91,7 +91,9 @@ def gather():
   finally:ctx.dispose()
 def bark(key,items):
  if not key:return False,'BARK_KEY_missing'
- url='https://api.day.app/'+key+'/大庆新能源车源新增/'+urllib.parse.quote('；'.join(f"{x['station_name']} {x['name']} ¥{x['price']} {x['pickup']}" for x in items),safe='')
+ title=urllib.parse.quote('大庆新能源车源新增',safe='')
+ body=urllib.parse.quote('；'.join(f"{x['station_name']} {x['name']} ¥{x['price']} {x['pickup']}" for x in items),safe='')
+ url='https://api.day.app/'+key+'/'+title+'/'+body
  req=urllib.request.Request(url,method='GET')
  try:
   with urllib.request.urlopen(req,timeout=20) as r:
