@@ -70,7 +70,8 @@ def gather():
    cid=city_id(post(ctx,CITY_API,{})); found=[]; checked=[]; failures=[]
    for pickup,ret in WINDOWS:
     lease={'cityId':cid,'entrance':1,'estimatedPickupTime':pickup,'estimatedReturnTime':ret}
-    ss=stations(post(ctx,DEPT_API,{**lease,'pickupFlag':1}))
+    # 先用不带租期的官方清单枚举全部网点；带租期接口会隐藏当时不可服务的网点。
+    ss=stations(post(ctx,DEPT_API,{'cityId':cid,'pickupFlag':1,'entrance':1}))
     for s in ss:
      sid=str(s['deptId']); name=str(s.get('deptName')); addr=str(s.get('deptAddress'))
      try:
