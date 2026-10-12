@@ -57,8 +57,4 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m 'chore: update watch state [skip ci]'
             git push
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore: update watch state [skip ci]'
-            git push
           fi
-
