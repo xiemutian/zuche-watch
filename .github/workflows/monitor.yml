@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: 获取代码
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       - name: 配置 Python
         uses: actions/setup-python@v5
         with:
@@ -50,16 +53,14 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('active=' + str(active).lower() + '\n')
           PYCODE
-      - name: 安装浏览器
+      - name: 安装查询依赖
         if: ${{ inputs.mode != 'test_push' && steps.window.outputs.active == 'true' }}
         run: |
           python -m pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
       - name: 检查网页并推送 Bark
         env:
           MODE: ${{ inputs.mode || 'monitor' }}
           BARK_KEY: ${{ secrets.BARK_KEY }}
-          LOGIN_STATE_B64: ${{ secrets.LOGIN_STATE_B64 }}
         run: python monitor.py
       - name: 保存去重状态
         if: ${{ always() && inputs.mode != 'test_push' }}
@@ -70,13 +71,14 @@ jobs:
           if [ -f history.json ]; then git add history.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'chore: update watch state [skip ci]'
+            git pull --rebase origin main
             git push
           fi
       - name: 保存安全检查报告
         if: ${{ always() && inputs.mode != 'test_push' }}
         uses: actions/upload-artifact@v4
         with:
-          name: monitor-result-${{ github.run_id }}
+          name: monitor-result-${{ github.run_id }}-${{ github.run_attempt }}
           path: check-result.json
           if-no-files-found: warn
           retention-days: 14
