@@ -3,9 +3,9 @@
   "last_status": "unknown",
   "last_detail": "选择大庆市：TimeoutError",
   "last_changed_utc": "2026-10-12T04:10:44+00:00",
-  "last_checked_utc": "2026-10-12T06:03:19+00:00",
-  "consecutive_unknown": 5,
-  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38210602788",
+  "last_checked_utc": "2026-10-12T06:06:06+00:00",
+  "consecutive_unknown": 6,
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38210827268",
   "schema_version": 3,
   "query": {
     "city": "大庆",
