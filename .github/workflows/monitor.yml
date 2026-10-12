@@ -3,7 +3,7 @@ name: 神州租车云端监控
 
 on:
   push:
-    paths: [monitor.py, requirements.txt, test_monitor.py, .github/workflows/monitor.yml]
+    paths: [monitor.py, monitor_all.py, requirements.txt, test_monitor.py, .github/workflows/monitor.yml]
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -61,14 +61,15 @@ jobs:
         env:
           MODE: ${{ inputs.mode || 'monitor' }}
           BARK_KEY: ${{ secrets.BARK_KEY }}
-        run: python monitor.py
+        run: python monitor_all.py
       - name: 保存去重状态
         if: ${{ always() && inputs.mode != 'test_push' }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add state.json
+          git add state.json state_all.json
           if [ -f history.json ]; then git add history.json; fi
+          if [ -f history_all.json ]; then git add history_all.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'chore: update watch state [skip ci]'
             git pull --rebase origin main
@@ -79,6 +80,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: monitor-result-${{ github.run_id }}-${{ github.run_attempt }}
-          path: check-result.json
+          path: |
+            check-result.json
+            check-result-all.json
           if-no-files-found: warn
           retention-days: 14
