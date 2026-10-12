@@ -8,7 +8,8 @@
       "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "105485",
@@ -16,7 +17,8 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "118379",
@@ -24,7 +26,8 @@
       "address": "黑龙江省大庆市萨尔图区机场航站楼地上停车场",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "93340",
@@ -32,7 +35,8 @@
       "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "95174",
@@ -40,7 +44,8 @@
       "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "100529",
@@ -48,7 +53,8 @@
       "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "88783",
@@ -56,7 +62,8 @@
       "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "105485",
@@ -64,7 +71,8 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "118379",
@@ -72,7 +80,8 @@
       "address": "黑龙江省大庆市萨尔图区机场航站楼地上停车场",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "93340",
@@ -80,7 +89,8 @@
       "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "95174",
@@ -88,7 +98,8 @@
       "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     },
     {
       "id": "100529",
@@ -96,7 +107,8 @@
       "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
       "pickup": "2026-10-17 09:00",
       "return": "2026-10-18 09:00",
-      "count": 0
+      "count": 0,
+      "return_open": true
     }
   ],
   "failures": [
@@ -129,8 +141,38 @@
       "reason": "SetupError"
     }
   ],
+  "warnings": [
+    {
+      "id": "95181",
+      "name": "杜尔伯特火车站自助点",
+      "pickup": "2026-10-16 18:00",
+      "return": "2026-10-17 18:00",
+      "reason": "lease_dept_hidden_or_no_inventory"
+    },
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-10-16 18:00",
+      "return": "2026-10-17 18:00",
+      "reason": "lease_dept_hidden_or_no_inventory"
+    },
+    {
+      "id": "95181",
+      "name": "杜尔伯特火车站自助点",
+      "pickup": "2026-10-17 09:00",
+      "return": "2026-10-18 09:00",
+      "reason": "lease_dept_hidden_or_no_inventory"
+    },
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-10-17 09:00",
+      "return": "2026-10-18 09:00",
+      "reason": "lease_dept_hidden_or_no_inventory"
+    }
+  ],
   "city_id": "87",
-  "verified_utc": "2026-10-12T10:32:58+00:00",
+  "verified_utc": "2026-10-12T10:48:30+00:00",
   "source": "official_web_api",
   "new_count": 0,
   "push": "not_triggered",
