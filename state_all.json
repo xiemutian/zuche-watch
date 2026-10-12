@@ -99,9 +99,38 @@
       "count": 0
     }
   ],
-  "failures": [],
+  "failures": [
+    {
+      "id": "95181",
+      "name": "杜尔伯特火车站自助点",
+      "pickup": "2026-10-16 18:00",
+      "return": "2026-10-17 18:00",
+      "reason": "SetupError"
+    },
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-10-16 18:00",
+      "return": "2026-10-17 18:00",
+      "reason": "SetupError"
+    },
+    {
+      "id": "95181",
+      "name": "杜尔伯特火车站自助点",
+      "pickup": "2026-10-17 09:00",
+      "return": "2026-10-18 09:00",
+      "reason": "SetupError"
+    },
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-10-17 09:00",
+      "return": "2026-10-18 09:00",
+      "reason": "SetupError"
+    }
+  ],
   "city_id": "87",
-  "verified_utc": "2026-10-12T10:31:51+00:00",
+  "verified_utc": "2026-10-12T10:32:58+00:00",
   "source": "official_web_api",
   "new_count": 0,
   "push": "not_triggered",
