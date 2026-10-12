@@ -1,11 +1,10 @@
-"""神州租车大庆东站车型监控 v3（精确DOM选择与严格状态记录）。
+"""神州租车车源监控 v4：按官网实际车源接口查询，失败时不推送有车。
 
-安全原则：网页交互/上下文确认失败时仅记录 unknown，不发送有车通知。
-该程序的 Playwright 控件适配未在真实神州网页验证，首次使用请检查 Actions 日志。
+仅使用公开查询接口；不登录、不创建订单、不读取或输出账户凭证。
+Playwright APIRequestContext 保持同一次查询会话，无需不稳定的城市选择器。
 """
 from __future__ import annotations
 
-import base64
 import json
 import os
 import re
@@ -13,507 +12,290 @@ import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
 
-STATE = Path(__file__).with_name('state.json')
+ROOT = Path(__file__).resolve().parent
+STATE = ROOT / 'state.json'
 HOME = 'https://m.zuche.com/'
-
-# 监控条件固定在程序里，避免使用只能代表列表页面的 #/rent/list URL。
 CITY = '大庆'
 STATION = '大庆东站服务点'
 PICKUP = '2026-10-17 08:00'
 RETURN = '2026-10-18 08:00'
-KEYWORDS = ['特斯拉', '日产N7', '日产 N7']
-
-# 如果页面更改了控件，需要根据 Actions 日志适配；不要删除严谨的租期校验。
-
-
-def normalize(value: Any) -> str:
-    return re.sub(r'[\s\u00a0\u200b\-_·・.,，。:：/()（）\[\]【】]', '', str(value or '')).lower()
-
-
-def official(url: str) -> bool:
-    try:
-        p = urllib.parse.urlsplit(url)
-        host = p.hostname or ''
-        return p.scheme == 'https' and not p.username and not p.password and (host == 'zuche.com' or host.endswith('.zuche.com'))
-    except ValueError:
-        return False
-
-
-def date_present(text: str, iso: str) -> bool:
-    date, hour = iso.split(' ')
-    year, month, day = (int(i) for i in date.split('-'))
-    patterns = [
-        rf'{year}\s*[-/年.]\s*0?{month}\s*[-/月.]\s*0?{day}',
-        rf'(?<!\d)0?{month}\s*月\s*0?{day}\s*日?',
-        rf'(?<!\d)0?{month}[-/]0?{day}(?!\d)',
-    ]
-    return any(re.search(p, text) for p in patterns)
-
-
-def date_time_present(text: str, iso: str) -> bool:
-    """能识别截图中的“10月17日\n周六 08:00”和“10月17日 08:00”。"""
-    date, hhmm = iso.split(' ')
-    year, month, day = (int(i) for i in date.split('-'))
-    date_patterns = [
-        rf'{year}\s*[-/年.]\s*0?{month}\s*[-/月.]\s*0?{day}\s*日?',
-        rf'(?<!\d)0?{month}\s*月\s*0?{day}\s*日?',
-        rf'(?<!\d)0?{month}[-/]0?{day}(?!\d)'
-    ]
-    h, mi = map(int, hhmm.split(':'))
-    time_re = re.compile(rf'(?<!\d)0?{h}\s*[:：]\s*{mi:02d}(?!\d)')
-    next_date = re.compile(r'\d{1,2}\s*月\s*\d{1,2}\s*日')
-    for dp in date_patterns:
-        for dm in re.finditer(dp, text):
-            tail = text[dm.end(): dm.end() + 55]
-            tm = time_re.search(tail)
-            if tm is None:
-                continue
-            other_date = next_date.search(tail)
-            if other_date and other_date.start() < tm.start():
-                continue
-            return True
-    return False
-
-
-def check_context(text: str, url: str, trusted_steps: set[str] | None = None) -> tuple[bool, str]:
-    """截图验证：车源列表顶部显示网点与完整租期，不再另查城市。"""
-    if not official(url):
-        return False, '非神州租车 HTTPS 官方域名'
-    parts = urllib.parse.urlsplit(url)
-    if 'rent/list' not in parts.fragment and 'rent/list' not in parts.path:
-        return False, '不是车型列表页面'
-    normalized = normalize(text)
-    if any(normalize(x) in normalized for x in ('滑动验证', '验证码', '请先登录', '访问频繁', '登录后继续', '异常访问')):
-        return False, '页面需要登录、验证或出现访问异常'
-    # 列表页的顶部标题示例：大庆东站服务点\n10月17日 08:00 － 10月18日 08:00。
-    # 顶部无需再次显示“大庆”，网点全名已经唯一确认。
-    heading = text[:450]
-    if normalize(STATION) not in normalize(heading):
-        return False, '车型列表标题未显示大庆东站服务点'
-    if not date_time_present(heading, PICKUP):
-        return False, '车型列表标题无法确认10月17日08:00'
-    if not date_time_present(heading, RETURN):
-        return False, '车型列表标题无法确认10月18日08:00'
-    # 排除只有页面头部、地图而车辆列表未成功加载的场景。
-    if '车型详情' not in text or not re.search(r'[¥￥]\s*\d+', text):
-        return False, '列表尚未显示带价格的车型卡片'
-    return True, '网点、日期时间及车型卡片已验证'
-
-
-def extract_card_matches(text: str) -> list[str]:
-    """识别截图中的“车型名称 / 配置 / ￥价格 / 车型详情”卡片。"""
-    hits = set()
-    for piece in text.split('车型详情')[:-1]:
-        matches = list(re.finditer(r'[¥￥]\s*\d+', piece))
-        if not matches:
-            continue
-        # 以距“车型详情”最近的一个标价为准，避免将页面广告关键词当车名。
-        before_price = piece[:matches[-1].start()]
-        lines = [line.strip() for line in before_price.splitlines() if line.strip()]
-        model_lines = lines[-2:]
-        model = normalize(' '.join(model_lines))
-        if '特斯拉' in model:
-            hits.add('特斯拉')
-        if '日产n7' in model or re.search(r'(?<![a-z0-9])n7(?![a-z0-9])', ' '.join(model_lines), re.I):
-            hits.add('日产N7')
-    return [x for x in ('特斯拉', '日产N7') if x in hits]
-
-
-def assess(text: str, url: str, trusted_steps: set[str] | None = None) -> dict:
-    valid, why = check_context(text, url, trusted_steps)
-    if not valid:
-        return {'state': 'unknown', 'matches': [], 'why': why}
-    if not trusted_steps or 'inventory_verified' not in trusted_steps:
-        return {'state':'unknown', 'matches':[], 'why':'车型卡片库存与取还上下文尚未完成结构化校验'}
-    hits = extract_card_matches(text)
-    return {'state': 'possible' if hits else 'notfound', 'matches': hits,
-            'why': '车型卡片包含目标关键词' if hits else '已验证列表，目前未看到目标车型'}
-
-
-def transition(previous: dict, result: dict) -> tuple[dict, list[str]]:
-    before = previous.get('present_matches', [])
-    if not isinstance(before, list):
-        before = []
-    after = result['matches'] if result['state'] == 'possible' else ([] if result['state'] == 'notfound' else before)
-    fresh = [x for x in after if x not in before] if result['state'] == 'possible' else []
-    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    changed = (before != after or previous.get('last_status') != result['state'] or previous.get('last_detail') != result['why'])
-    new = {**previous, 'schema_version': 3, 'present_matches': after,
-           'last_status': result['state'], 'last_detail': result['why'],
-           'last_changed_utc': now if changed else previous.get('last_changed_utc', now),
-           'last_checked_utc': now,
-           'consecutive_unknown': previous.get('consecutive_unknown', 0) + 1 if result['state'] == 'unknown' else 0,
-           'query': {'city':CITY, 'pickup_station':STATION, 'return_station':STATION,
-                     'pickup':PICKUP, 'return':RETURN, 'timezone':'Asia/Shanghai', 'targets':['特斯拉','日产N7']},
-           'run_url': 'https://github.com/' + os.getenv('GITHUB_REPOSITORY', 'xiemutian/zuche-watch') + '/actions/runs/' + os.getenv('GITHUB_RUN_ID', '')}
-    if result['state'] in ('possible', 'notfound'):
-        new['last_verified_utc'] = now
-        new['last_verified_status'] = result['state']
-    new['verification'] = result.get('verification', {})
-    return new, fresh
-
-
-def save_status(state: dict):
-    # 临时文件原子替换，运行失败也由Actions always步骤提交状态。
-    temporary = STATE.with_suffix('.tmp')
-    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    temporary.replace(STATE)
-    Path('check-result.json').write_text(json.dumps(state, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    history = Path(__file__).with_name('history.json')
-    try:
-        entries = json.loads(history.read_text(encoding='utf-8')) if history.exists() else []
-    except (OSError, ValueError):
-        entries = []
-    entries.append({k: state[k] for k in ('last_checked_utc','last_status','last_detail','present_matches','run_url','verification') if k in state})
-    history.write_text(json.dumps(entries[-240:], ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    summary = os.getenv('GITHUB_STEP_SUMMARY')
-    if summary:
-        with open(summary, 'a', encoding='utf-8') as f:
-            f.write('### 神州租车监控结果\n\n')
-            f.write('| 项目 | 结果 |\n|---|---|\n')
-            for label, value in [('状态', state['last_status']), ('检查时间（UTC）', state['last_checked_utc']),
-                                  ('取还网点', STATION), ('租期（北京时间）', PICKUP+' — '+RETURN),
-                                  ('目标车型', '特斯拉 / 日产N7'), ('说明', state['last_detail']),
-                                  ('连续未确认次数', state['consecutive_unknown'])]:
-                f.write('| '+label+' | '+str(value).replace('|','/').replace('\n',' ')+' |\n')
-            f.write('\nunknown 表示本轮未验证成功，不表示无车；仅完整验证后发送车型通知。\n')
-
+CITY_API = '/action/carrctapi/order/cityList/v1'
+DEPT_API = '/action/carrctapi/order/deptList/v1'
+CAR_API = '/resource/carrctapi/order/chooseCar/v3'
 
 
 class SetupError(Exception):
     pass
 
 
-def click_first_visible(page, locators: list, description: str, timeout=2500):
-    for loc in locators:
-        try:
-            for i in range(min(loc.count(), 8)):
-                item = loc.nth(i)
-                if item.is_visible(timeout=timeout):
-                    item.click(timeout=timeout)
-                    return
-        except Exception:
-            continue
-    raise SetupError(f'无法定位{description}控件（可能是网站界面变化）')
+def utc_now():
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
-def home_city_selected(text: str) -> bool:
-    """校验首页顶部的取车城市，避免广告或其他地名误触发跳过选择。"""
-    front = (text or '')[:450]
-    label = re.search(r'取车城市', front)
-    if not label:
+def normalize(value):
+    return re.sub(r'[\s\u00a0\u200b\-_·・.,，。:：/()（）]', '', str(value or '')).lower()
+
+
+def official(url):
+    try:
+        p = urllib.parse.urlsplit(url)
+        return p.scheme == 'https' and p.hostname == 'm.zuche.com' and not p.username and not p.password and p.port in (None, 443)
+    except ValueError:
         return False
-    return bool(re.search(r'(?<![\u4e00-\u9fa5])大庆(?!东站)', front[label.end():label.end() + 100]))
 
 
-def safe_cloud_diagnostics(page, stage: str):
-    """公开仓库仅记录布尔值及页面结构，不输出 Cookie、URL 参数或网页原文。"""
+def assess(text, url, trusted_steps=None):
+    """旧文本接口保留为拒绝路径；关键词/广告/截图文字不能证明库存。"""
+    return {'state': 'unknown', 'matches': [], 'why': '纯文本不能确认准确查询条件与真实库存'}
+
+
+def target_model(name):
+    model = normalize(name)
+    if '特斯拉' in model:
+        return '特斯拉'
+    if '日产' in model and 'n7' in model:
+        return '日产N7'
+    return ''
+
+
+def require_success(data):
+    if not isinstance(data, dict) or data.get('status') != 'SUCCESS' or data.get('code') != 1 or not isinstance(data.get('content'), dict):
+        raise SetupError('官网接口未返回明确的成功结果，不认定有车或无车')
+    return data['content']
+
+
+def resolve_city(data):
+    content = require_success(data)
+    all_cities = content.get('allCities')
+    if not isinstance(all_cities, list):
+        raise SetupError('城市列表结构不符合官网查询协议')
+    cities = [c for c in all_cities if isinstance(c, dict) and c.get('cityName') == CITY]
+    if len(cities) != 1 or not str(cities[0].get('cityId', '')).isdigit():
+        raise SetupError('未找到唯一、有效的大庆城市编号')
+    return str(cities[0]['cityId'])
+
+
+def resolve_station(data, expected_id=None):
+    content = require_success(data)
+    districts = content.get('districtList')
+    if not isinstance(districts, list):
+        raise SetupError('官网网点列表未完整返回')
+    matches = {}
+    for district in districts:
+        if not isinstance(district, dict) or not isinstance(district.get('deptList'), list):
+            raise SetupError('官网网点分区列表结构异常')
+        for dept in district['deptList']:
+            if isinstance(dept, dict) and dept.get('deptName') == STATION:
+                dept_id = str(dept.get('deptId', ''))
+                if not dept_id.isdigit() or '大庆市龙凤区' not in str(dept.get('deptAddress', '')):
+                    raise SetupError('东站网点编号或地址无法准确确认')
+                if dept.get('inWorkFlag') is not True:
+                    raise SetupError('指定租期取车或还车不在网点可服务时间内')
+                if dept_id in matches and matches[dept_id].get('inWorkFlag') != dept.get('inWorkFlag'):
+                    raise SetupError('同一网点的营业状态存在冲突')
+                matches[dept_id] = dept
+    if len(matches) != 1:
+        raise SetupError('未找到唯一的大庆东站服务点')
+    dept_id = next(iter(matches))
+    if expected_id is not None and dept_id != str(expected_id):
+        raise SetupError('取车和还车网点编号不一致')
+    return dept_id
+
+
+def assess_listing(data, city_id, dept_id, request):
+    expected = {'pickupCityId': str(city_id), 'returnCityId': str(city_id),
+                'pickupDeptId': str(dept_id), 'pickupTime': PICKUP,
+                'returnTime': RETURN, 'entrance': '1', 'holidaysWaitingFlag': '0'}
+    if any(str(request.get(k, '')) != value for k, value in expected.items()):
+        raise SetupError('车源请求的网点、租期或查询类型不一致')
+    content = require_success(data)
+    groups = content.get('deptHangModels')
+    if not isinstance(groups, list):
+        raise SetupError('官网未返回结构化车型列表')
+    selected = [g for g in groups if isinstance(g, dict) and str(g.get('deptId')) == str(dept_id)]
+    if len(selected) != 1:
+        raise SetupError('车源响应缺少唯一的东站车型列表，不能使用附近网点替代')
+    group = selected[0]
+    if group.get('deptName') != STATION or str(group.get('cityId')) != str(city_id):
+        raise SetupError('车型列表所属城市或网点与请求不一致')
+    models = group.get('models')
+    if not isinstance(models, list):
+        raise SetupError('东站车型列表字段缺失')
+    names, seen, hits, targets = [], set(), set(), []
+    for model in models:
+        if not isinstance(model, dict) or not isinstance(model.get('modelName'), str) or not model['modelName'].strip():
+            raise SetupError('车型名称字段不完整')
+        model_id = str(model.get('modelId', ''))
+        if not model_id.isdigit() or model_id in seen:
+            raise SetupError('车型编号缺失或重复，列表无法完整核验')
+        seen.add(model_id)
+        inventory = model.get('inventoryType')
+        if isinstance(inventory, bool) or str(inventory) not in ('0', '1', '2', '3'):
+            raise SetupError('官网返回未适配的库存状态，停止通知')
+        inventory = int(inventory)
+        label = target_model(model['modelName'])
+        price = None
+        if inventory in (0, 1):
+            try:
+                prices = [Decimal(str(model[key])) for key in ('dailyPrice', 'packagePrice')]
+                if not all(p.is_finite() and p > 0 for p in prices):
+                    raise InvalidOperation
+                price = str(min(prices))
+            except (KeyError, ValueError, InvalidOperation):
+                raise SetupError('可选车型缺少有效价格，列表无法核验') from None
+        names.append({'model_id': model_id, 'name': model['modelName'],
+                      'inventory_type': inventory, 'daily_price': price})
+        if label:
+            targets.append({'name': model['modelName'], 'available': inventory in (0, 1), 'daily_price': price})
+            if inventory in (0, 1):
+                hits.add(label)
+    return {'state': 'possible' if hits else 'notfound',
+            'matches': [x for x in ('特斯拉', '日产N7') if x in hits],
+            'why': '官网确认指定网点和租期存在目标可选车型' if hits else '已核验东站完整车型列表，目前无目标可选车型',
+            'verification': {'source': 'official_web_api', 'city_id': str(city_id),
+                             'pickup_dept_id': str(dept_id), 'return_dept_id': str(dept_id),
+                             'pickup_and_return_open': True, 'pickup': PICKUP, 'return': RETURN,
+                             'model_count': len(models), 'target_models': targets,
+                             'observed_models': names, 'verified_utc': utc_now()}}
+
+
+def api_json(context, uri, payload):
+    response = context.post('/api/gw.do?' + urllib.parse.urlencode({'uri': uri}),
+                            form={'data': json.dumps(payload, ensure_ascii=False)}, timeout=35000)
     try:
-        parsed = urllib.parse.urlsplit(page.url)
-        body = page.locator('body')
-        txt = body.inner_text(timeout=5000) if body.count() else ''
-        words = ('神州租车', '取车城市', '取车地址', '去订车',
-                 '选择城市', '搜索城市', '当前定位城市', '大庆',
-                 '验证码', '安全验证', '登录', '访问频繁', '系统繁忙')
-        d = {
-            '阶段': stage,
-            '域名': parsed.hostname,
-            '路径': parsed.path,
-            '路由': parsed.fragment.split('?')[0][:75],
-            '可见文字长度': len(txt),
-            '页面关键词': {word: word in txt for word in words},
-            '取车城市精确元素数': page.get_by_text('取车城市', exact=True).count(),
-            '取车城市模糊元素数': page.get_by_text('取车城市', exact=False).count(),
-            '大庆独立元素数': page.get_by_text('大庆', exact=True).count(),
-            '页面输入框数量': page.locator('input').count(),
-        }
-        print('云端网页结构诊断（不含个人信息）：' + json.dumps(d, ensure_ascii=False), flush=True)
-    except Exception as error:
-        print('网页诊断无法完成：' + type(error).__name__, flush=True)
-
-
-def city_chooser_visible(page) -> bool:
-    """同时确认标题与搜索/定位信息，避免把首页其它城市文案当作选择器。"""
-    txt = page.locator('body').inner_text(timeout=9000)
-    return ('选择城市' in txt[:350] and
-            ('搜索城市' in txt[:550] or '当前定位城市' in txt[:550]))
-
-
-def city_dom_outline(page):
-    """只输出标签与祖先结构信息，不记录用户网页文字。"""
-    label = page.get_by_text('取车城市', exact=True)
-    try:
-        return label.first.evaluate("""(el) => {
-          let n=el, rows=[];
-          for(let depth=0; n && depth<6; depth++, n=n.parentElement){
-            const rect=n.getBoundingClientRect();
-            const t=(n.innerText||'').trim();
-            rows.push({level:depth,tag:n.tagName.toLowerCase(),
-              className:String(n.className||'').slice(0,90),
-              role:n.getAttribute('role')||'',
-              width:Math.round(rect.width),height:Math.round(rect.height),
-              chars:t.length, hasAddress:t.includes('取车地址'),
-              hasOrder:t.includes('去订车'),hasCity:t.includes('取车城市')});
-          }
-          return rows;
-        }""")
-    except Exception as error:
-        return {'error':type(error).__name__}
-
-
-def wait_home(page):
-    page.locator('.selector.pickup .city .label-con em').wait_for(state='visible', timeout=30000)
-    page.get_by_role('button', name='去订车', exact=True).wait_for(state='visible', timeout=30000)
-
-
-def open_city_picker(page, which: str):
-    """2026-10-12真实网页验证：点击城市值，标签本身无导航行为。"""
-    if which != '取车':
-        raise SetupError('只实现取车城市选择')
-    wait_home(page)
-    print('城市步骤：点击实际城市值', flush=True)
-    page.locator('.selector.pickup .city .label-con em').click(timeout=10000)
-    page.wait_for_url(re.compile(r'/citylist(?:\?|$)'), timeout=15000)
-    print('城市步骤：已到citylist，等待标题', flush=True)
-    page.get_by_text('选择城市', exact=True).wait_for(state='visible', timeout=30000)
-
-
-def select_city(page, which: str):
-    open_city_picker(page, which)
-    page.locator('.city-re-name-text').filter(has_text=re.compile('^大庆$')).wait_for(state='visible', timeout=30000)
-    page.locator('#city-re-input').fill('', timeout=10000)
-    page.locator('#city-re-input').press_sequentially(CITY, delay=100)
-    page.locator('#city-re-input').press('ArrowRight')
-    print('城市搜索输入核验：'+str(page.locator('#city-re-input').input_value() == CITY), flush=True)
-    choice = page.locator('.search-city-item').filter(has_text=re.compile('^大庆$'))
-    print('城市步骤：等待大庆选项', flush=True)
-    choice.wait_for(state='visible', timeout=30000)
-    print('大庆选项结构：'+choice.evaluate('(el)=>el.outerHTML'), flush=True)
-    choice.click(timeout=10000)
-    print('城市步骤：已点大庆，等待首页', flush=True)
-    page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
-    wait_home(page)
-    page.locator('.selector.pickup .city .label-con em').filter(has_text=re.compile('^大庆$')).wait_for(state='visible', timeout=30000)
-    if page.locator('.selector.pickup .city .label-con em').inner_text().strip() != CITY:
-        raise SetupError('首页取车城市未准确显示大庆')
-    print('城市已验证：大庆', flush=True)
-
-
-def select_station(page, which: str = '取车'):
-    wait_home(page)
-    page.locator('.selector.pickup .addr .label-con em').click(timeout=10000)
-    page.wait_for_url(re.compile(r'/poisearch(?:\?|$)'), timeout=15000)
-    page.get_by_text('网点', exact=True).wait_for(state='visible', timeout=30000)
-    cancel = page.get_by_role('button', name='取消', exact=True)
-    if cancel.count() and cancel.is_visible():
-        cancel.click()
-    page.get_by_text('网点', exact=True).click(timeout=10000)
-    station = page.get_by_text(STATION, exact=True)
-    station.wait_for(state='visible', timeout=30000)
-    station.click(timeout=10000)
-    page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
-    wait_home(page)
-    page.locator('.selector.pickup .addr .label-con em').filter(has_text=re.compile('^大庆东站服务点$')).wait_for(state='visible', timeout=30000)
-    if page.locator('.selector.pickup .addr .label-con em').inner_text().strip() != STATION:
-        raise SetupError('首页取车网点未准确显示大庆东站服务点')
-
-
-def select_wheel_time(page, selector: str, target='08:00'):
-    wheel = page.locator(selector + ' .am-picker-col')
-    wheel.wait_for(state='visible', timeout=15000)
-    items = wheel.locator('.am-picker-col-item')
-    for attempt in range(8):
-        values = items.all_text_contents()
-        if target not in values:
-            raise SetupError('网点时间选项不包含08:00')
-        selected = wheel.locator('.am-picker-col-item-selected')
-        if selected.count() != 1:
-            raise SetupError('时间滚轮未显示唯一选中项')
-        current = selected.inner_text().strip()
-        if current == target:
-            return
-        # 使用实际滚轮行高进行鼠标拖动，不注入组件状态或伪造时间。
-        delta = values.index(target) - values.index(current)
-        row = selected.bounding_box()
-        box = wheel.bounding_box()
-        if not row or not box:
-            raise SetupError('无法读取时间滚轮尺寸')
-        step = max(-2, min(2, delta))
-        x = box['x'] + box['width'] / 2
-        y = box['y'] + box['height'] / 2
-        page.mouse.move(x, y)
-        page.mouse.down()
-        page.mouse.move(x, y - step * row['height'], steps=20)
-        page.wait_for_timeout(250)
-        page.mouse.up()
-        page.wait_for_timeout(600)
-    raise SetupError('时间滚轮未准确选中08:00')
-
-
-def choose_rental_period(page):
-    wait_home(page)
-    dates = page.locator('.select-car').get_by_text(re.compile(r'10月\d+日'))
-    dates.first.click(timeout=10000)
-    month = page.locator('.single-month').filter(has=page.get_by_text('2026年10月', exact=True))
-    month.wait_for(state='visible', timeout=15000)
-    page.get_by_text('清空', exact=True).click(timeout=10000)
-    for day, label in [(17, '取车'), (18, '还车')]:
-        cell = month.locator('.cell').filter(has=page.locator('.date-wrapper > .date').filter(has_text=re.compile(rf'^{day}$')))
-        if cell.count() != 1:
-            raise SetupError(f'10月{day}日单元格不唯一')
-        cell.click(timeout=10000)
-        page.wait_for_timeout(350)
-        if label not in cell.inner_text():
-            raise SetupError(f'10月{day}日未标记为{label}')
-    select_wheel_time(page, '.pickup-time')
-    select_wheel_time(page, '.return-time')
-    page.get_by_text('确定时间', exact=True).click(timeout=10000)
-    page.locator('.confirm-panel').wait_for(state='hidden', timeout=10000)
-
-
-def read_vehicle_list(page):
-    """循环滚动加载结果；避免只看截图首次露出的3辆车。"""
-    chunks = []
-    seen = set()
-    for _ in range(12):
-        sample = page.locator('body').inner_text(timeout=10000)
-        if sample not in seen:
-            chunks.append(sample)
-            seen.add(sample)
-        page.evaluate("""() => {
-          let root = document.scrollingElement || document.documentElement;
-          root.scrollTop += Math.max(500, window.innerHeight * .75);
-          // 车型列表有可能是独立的滚动容器。
-          for (const e of document.querySelectorAll('main,section,article,div,ul')) {
-            if (e.clientHeight > 260 && e.scrollHeight > e.clientHeight + 200) {
-              const css = getComputedStyle(e);
-              if (css.overflowY === 'auto' || css.overflowY === 'scroll') {
-                e.scrollTop += Math.max(500, e.clientHeight * .8);
-              }
-            }
-          }
-        }""")
-        page.wait_for_timeout(550)
-    return '\n'.join(chunks)
+        if not official(response.url) or response.status != 200:
+            raise SetupError('官网查询请求未获得官方HTTPS成功响应')
+        result = response.json()
+        require_success(result)
+        return result
+    finally:
+        response.dispose()
 
 
 def gather():
     from playwright.sync_api import sync_playwright
+    stage = '创建官网查询会话'
+    context = None
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True, args=['--no-sandbox'])
-        page = None
-        stage = '启动浏览器'
         try:
-            # m.zuche.com本身提供H5；使用标准Chrome环境，与真实云端浏览器操作一致。
-            context_opt = {'locale':'zh-CN','timezone_id':'Asia/Shanghai',
-                           'viewport': {'width':390,'height':844},
-                           'device_scale_factor':1, 'is_mobile':False, 'has_touch':False}
-            state = os.environ.get('LOGIN_STATE_B64', '').strip()
-            if state:
-                context_opt['storage_state'] = json.loads(base64.b64decode(state, validate=True).decode('utf-8'))
-            ctx = browser.new_context(**context_opt)
-            page = ctx.new_page()
-            stage = '打开首页'
-            page.goto(HOME, wait_until='domcontentloaded', timeout=40000)
-            wait_home(page)
-            # 异步渲染的站点在 domcontentloaded 后可能仍是一片空白。
-            # 最多额外等待9秒，让首页关键元素有时间出现。
-            for _ in range(6):
-                initial_text = page.locator('body').inner_text(timeout=10000)
-                if '去订车' in initial_text or ('取车城市' in initial_text and '取车地址' in initial_text):
-                    break
-                page.wait_for_timeout(1500)
-            stage = '等待首页城市初始化'
-            # 官网自身在currentCity.cityId就绪后才恢复用户选中的城市。
-            # 只读取该布尔值，不输出LocalStorage、Cookie或任何登录信息。
-            page.wait_for_function(
-                "() => { try { const s = JSON.parse(localStorage.getItem('rentSelectCityAddrInfo') || '{}'); return !!(s.currentCity && s.currentCity.cityId); } catch (_) { return false; } }",
-                timeout=40000)
-            print('首页后台城市初始化已完成', flush=True)
-            stage = '选择大庆市'
-            safe_cloud_diagnostics(page, stage)
-            # 登录会话可能已经保存城市；可跳过重复选择。
-            summary = page.locator('body').inner_text(timeout=10000)
-            if not home_city_selected(summary):
-                select_city(page, '取车')
-            print('步骤1：检查/选择取车城市（大庆）', flush=True)
-            safe_cloud_diagnostics(page, '城市选择完成')
-            stage = '选择大庆东站服务点'
-            select_station(page)
-            print('步骤2：已点击取车网点')
-            # 用户截图里“跨网点还车”关闭，和取车网点相同，无需还车控件。
-            stage = '设置取车与还车时间'
-            summary = page.locator('body').inner_text(timeout=10000)
-            choose_rental_period(page)
-            print('步骤3：已执行租期选择，进入提交前校验')
-            stage = '提交前检查日期和网点'
-            summary = page.locator('body').inner_text(timeout=10000)
-            checks = [STATION in summary, date_time_present(summary, PICKUP), date_time_present(summary, RETURN)]
-            if not all(checks):
-                raise SetupError('首页无法确认以下条件：'+','.join(
-                    n for n, ok in zip(['大庆东站服务点','10月17日08:00','10月18日08:00'], checks) if not ok))
-            stage = '进入车型列表'
-            click_first_visible(page, [page.get_by_text('去订车', exact=True),
-                                       page.get_by_text('立即选车', exact=True)], '去订车')
-            page.wait_for_timeout(5000)
-            stage = '验证车型列表内容'
-            text = read_vehicle_list(page)
-            result = assess(text, page.url)
-            if result['state'] == 'unknown':
-                debug_capture(page, stage, result['why'])
+            options = {}
+            # 与Python标准HTTP客户端一致，使用运行环境已有的代理配置。
+            # 不输出代理地址或认证信息；GitHub Runner无代理时直连。
+            proxy_url = urllib.request.getproxies().get('https')
+            if proxy_url:
+                proxy = urllib.parse.urlsplit(proxy_url)
+                if proxy.scheme not in ('http', 'https') or not proxy.hostname:
+                    raise SetupError('运行环境HTTPS代理配置无效')
+                server = proxy.scheme + '://' + proxy.hostname
+                if proxy.port:
+                    server += ':' + str(proxy.port)
+                options['proxy'] = {'server': server}
+                if proxy.username:
+                    options['proxy']['username'] = urllib.parse.unquote(proxy.username)
+                if proxy.password:
+                    options['proxy']['password'] = urllib.parse.unquote(proxy.password)
+            context = pw.request.new_context(base_url=HOME, ignore_https_errors=False,
+                                             extra_http_headers={'Referer': HOME}, **options)
+            stage = '核验大庆城市'
+            city_id = resolve_city(api_json(context, CITY_API, {}))
+            print('官网城市已核验：大庆，编号 ' + city_id, flush=True)
+            lease = {'cityId': city_id, 'entrance': 1, 'estimatedPickupTime': PICKUP,
+                     'estimatedReturnTime': RETURN}
+            stage = '核验取车网点与营业时间'
+            dept_id = resolve_station(api_json(context, DEPT_API, {**lease, 'pickupFlag': 1}))
+            stage = '核验同网点还车与营业时间'
+            resolve_station(api_json(context, DEPT_API, {**lease, 'pickupFlag': 0, 'pickupDeptId': dept_id}), dept_id)
+            print('官网取还网点及营业时间已核验：' + STATION + '，编号 ' + dept_id, flush=True)
+            stage = '查询并核验官网完整车型列表'
+            request = {'pickupCityId': city_id, 'returnCityId': city_id, 'pickupDeptId': dept_id,
+                       'pickupTime': PICKUP, 'returnTime': RETURN, 'entrance': 1, 'holidaysWaitingFlag': 0}
+            result = assess_listing(api_json(context, CAR_API, request), city_id, dept_id, request)
+            print('真实官网车型数量：' + str(result['verification']['model_count']), flush=True)
             return result
         except Exception as exc:
-            why = f'{stage}：{type(exc).__name__}'
-            if isinstance(exc, SetupError):
-                why += '：'+str(exc)
-            if page is not None:
-                debug_capture(page, stage, why)
-            return {'state':'unknown','matches':[], 'why':why}
+            reason = str(exc) if isinstance(exc, SetupError) else type(exc).__name__
+            return {'state': 'unknown', 'matches': [], 'why': stage + '：' + reason}
         finally:
-            browser.close()
+            if context is not None:
+                context.dispose()
 
 
-def debug_capture(page, stage: str, reason: str):
-    """公开仓库安全模式：只记录步骤与原因，不保存网页截图和登录信息。"""
-    print('诊断阶段：'+stage+'；结果：'+reason[:160])
-    safe_cloud_diagnostics(page, stage)
+def transition(previous, result):
+    before = previous.get('present_matches', [])
+    if not isinstance(before, list):
+        before = []
+    after = result['matches'] if result['state'] == 'possible' else ([] if result['state'] == 'notfound' else before)
+    fresh = [x for x in after if x not in before] if result['state'] == 'possible' else []
+    now = utc_now()
+    changed = (before != after or previous.get('last_status') != result['state'] or previous.get('last_detail') != result['why'])
+    old_count = previous.get('consecutive_unknown', 0)
+    if not isinstance(old_count, int):
+        old_count = 0
+    new = {**previous, 'schema_version': 4, 'present_matches': after,
+           'last_status': result['state'], 'last_detail': result['why'],
+           'last_changed_utc': now if changed else previous.get('last_changed_utc', now),
+           'last_checked_utc': now, 'consecutive_unknown': old_count + 1 if result['state'] == 'unknown' else 0,
+           'query': {'city': CITY, 'pickup_station': STATION, 'return_station': STATION,
+                     'pickup': PICKUP, 'return': RETURN, 'timezone': 'Asia/Shanghai', 'targets': ['特斯拉', '日产N7']},
+           'run_url': 'https://github.com/' + os.getenv('GITHUB_REPOSITORY', 'xiemutian/zuche-watch') + '/actions/runs/' + os.getenv('GITHUB_RUN_ID', ''),
+           'verification': result.get('verification', {})}
+    if result['state'] in ('possible', 'notfound'):
+        new['last_verified_utc'] = now
+        new['last_verified_status'] = result['state']
+    return new, fresh
+
+
+def save_status(state):
+    temporary = STATE.with_suffix('.tmp')
+    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    temporary.replace(STATE)
+    (ROOT / 'check-result.json').write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    history = ROOT / 'history.json'
     try:
-        info = page.evaluate(r"""() => ({
-          searchTargetOutline: Array.from(document.querySelectorAll('.city-re-name-text,.search-city-item')).filter(e=>e.textContent.trim()==='大庆').map(e=>e.parentElement.outerHTML.slice(0,1800)),
-          searchInput: Array.from(document.querySelectorAll('#city-re-input')).map(e=>({tag:e.tagName,hasCorrectValue:e.value==='大庆',outer:e.outerHTML.slice(0,500)})),
-          selectedCity: Array.from(document.querySelectorAll('.selector.pickup .city em')).map(e=>e.textContent).filter(t=>/^[\u4e00-\u9fff]{1,12}$/.test(t)),
-          cityStructure: Array.from(document.querySelectorAll('.selector.pickup .city,.selector.pickup .city *')).map(e=>({tag:e.tagName,class:e.className,rect:JSON.stringify(e.getBoundingClientRect()),isDaqing:e.textContent.trim()==='大庆'})),
-          months: Array.from(document.querySelectorAll('.month-title')).map(e=>e.textContent).filter(t=>/^\d{4}年\d{1,2}月$/.test(t)),
-          calendarSelected: Array.from(document.querySelectorAll('.rent-date-start,.rent-date-end')).map(e=>({class:e.className,text:(e.innerText||'').replace(/[^0-9取还车]/g,'')})),
-          times: Array.from(document.querySelectorAll('.am-picker-col-item-selected')).map(e=>e.textContent).filter(t=>/^\d{2}:\d{2}$/.test(t)),
-          visibleClasses: Array.from(document.querySelectorAll('div,section')).filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).map(e=>e.className).filter(c=>typeof c==='string' && /calendar|date|time|car|rent|vehicle|list/.test(c)).slice(0,65)
-        })""")
-        print('安全控件诊断：'+json.dumps(info, ensure_ascii=False))
-    except Exception:
-        pass
+        entries = json.loads(history.read_text(encoding='utf-8')) if history.exists() else []
+        if not isinstance(entries, list):
+            entries = []
+    except (OSError, ValueError):
+        entries = []
+    item = {k: state[k] for k in ('last_checked_utc', 'last_status', 'last_detail', 'present_matches', 'run_url')}
+    item['verified_model_count'] = state.get('verification', {}).get('model_count')
+    item['last_push_status'] = state.get('last_push_status')
+    entries.append(item)
+    history.write_text(json.dumps(entries[-240:], ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    summary = os.getenv('GITHUB_STEP_SUMMARY')
+    if summary:
+        with open(summary, 'a', encoding='utf-8') as f:
+            f.write('### 神州租车监控结果\n\n| 项目 | 结果 |\n|---|---|\n')
+            rows = [('状态', state['last_status']), ('检查时间（UTC）', state['last_checked_utc']),
+                    ('取还网点', STATION), ('租期（北京时间）', PICKUP + ' — ' + RETURN),
+                    ('目标车型', '特斯拉 / 日产N7'), ('实际核验车型数', state.get('verification', {}).get('model_count', '未确认')),
+                    ('数据来源', '官网实际车源接口'), ('说明', state['last_detail']),
+                    ('连续未确认次数', state['consecutive_unknown']), ('本轮推送', state.get('last_push_status', '未触发'))]
+            for label, value in rows:
+                f.write('| ' + label + ' | ' + str(value).replace('|', '/').replace('\n', ' ') + ' |\n')
+            f.write('\nunknown 不代表无车；仅成功核验城市、同网点取还、完整租期、营业状态和目标库存后通知。\n')
 
 
 def bark(key, title, body):
     key = key.strip()
     if key.startswith('https://'):
         uri = urllib.parse.urlsplit(key)
-        if uri.hostname != 'api.day.app':
-            raise ValueError('仅支持官方 Bark 地址 api.day.app')
-        key = next((v for v in uri.path.split('/') if v), '')
+        if uri.hostname != 'api.day.app' or uri.username or uri.password:
+            raise ValueError('Bark地址格式错误')
+        key = next((part for part in uri.path.split('/') if part), '')
     if not re.fullmatch(r'[A-Za-z0-9_-]{8,180}', key):
-        raise ValueError('BARK_KEY 格式错误')
-    payload = json.dumps({'device_key':key, 'title':title, 'body':body,
-                          'group':'神州租车监控', 'level':'timeSensitive',
-                          'url': HOME}, ensure_ascii=False).encode()
-    req = urllib.request.Request('https://api.day.app/push', payload,
-                                 {'Content-Type':'application/json; charset=utf-8'}, method='POST')
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        data = json.loads(resp.read())
-        if resp.status != 200 or data.get('code', 200) != 200:
-            raise RuntimeError('Bark 返回失败状态')
+        raise ValueError('BARK_KEY格式错误')
+    payload = json.dumps({'device_key': key, 'title': title, 'body': body,
+                          'group': '神州租车监控', 'level': 'timeSensitive', 'url': HOME}, ensure_ascii=False).encode()
+    request = urllib.request.Request('https://api.day.app/push', payload,
+                                     {'Content-Type': 'application/json; charset=utf-8'}, method='POST')
+    with urllib.request.urlopen(request, timeout=20) as response:
+        data = json.load(response)
+        if response.status != 200 or data.get('code') != 200:
+            raise RuntimeError('Bark未返回明确成功状态')
 
 
 def main():
@@ -521,67 +303,64 @@ def main():
     mode = os.getenv('MODE', 'monitor')
     if mode == 'test_push':
         if not key:
-            print('缺少 GitHub Secret: BARK_KEY')
+            print('缺少GitHub Secret: BARK_KEY')
             return 2
         try:
             bark(key, '神州租车云端推送测试', '推送通道正常。这不是车源提醒。')
             print('测试推送已发出')
             return 0
         except Exception as exc:
-            print('推送测试失败：'+type(exc).__name__)
+            print('推送测试失败：' + type(exc).__name__)
             return 1
     try:
         last = json.loads(STATE.read_text(encoding='utf-8')) if STATE.exists() else {}
         if not isinstance(last, dict):
-            raise ValueError('state格式错误')
+            raise ValueError
     except (OSError, ValueError):
-        state, _ = transition({}, {'state':'unknown','matches':[], 'why':'去重状态文件无法读取，停止通知'})
+        state, _ = transition({}, {'state': 'unknown', 'matches': [], 'why': '去重状态文件无法读取，停止通知'})
         save_status(state)
         return 1
-    now = datetime.now(timezone.utc)
-    if now >= datetime(2026, 10, 17, 0, 0, tzinfo=timezone.utc):
-        state, _ = transition(last, {'state':'stopped','matches':[], 'why':'已到约定取车时刻，停止网页查询与通知'})
+    if datetime.now(timezone.utc) >= datetime(2026, 10, 17, tzinfo=timezone.utc):
+        state, _ = transition(last, {'state': 'stopped', 'matches': [], 'why': '已到约定取车时刻，停止查询与通知'})
+        state['last_push_status'] = 'stopped'
         save_status(state)
-        print('已停止监控：2026-10-17 08:00（北京时间）')
+        print('停止监控：2026-10-17 08:00（北京时间）')
         return 0
     if mode != 'diagnose' and not key:
-        state, _ = transition(last, {'state':'unknown','matches':[], 'why':'缺少GitHub Secret: BARK_KEY'})
+        state, _ = transition(last, {'state': 'unknown', 'matches': [], 'why': '缺少GitHub Secret: BARK_KEY'})
         save_status(state)
         return 2
     try:
         result = gather()
     except Exception as exc:
-        result = {'state':'unknown', 'matches':[], 'why':'浏览器启动失败：' + type(exc).__name__}
+        result = {'state': 'unknown', 'matches': [], 'why': '查询会话创建失败：' + type(exc).__name__}
     print('检查结果：', result['state'], result['why'], flush=True)
     updated, fresh = transition(last, result)
+    updated['last_push_status'] = 'not_triggered'
     if mode == 'diagnose':
-        # 诊断不改变已发送通知的去重集合。
         updated['present_matches'] = last.get('present_matches', [])
         updated['last_push_status'] = 'disabled_for_diagnosis'
     elif fresh:
         try:
-            bark(key, '神州租车：目标车型可选',
-                 '大庆东站服务点取还｜2026年10月17日08:00—18日08:00｜车型：' + '、'.join(fresh)
-                 + '。已核验网点、租期和可选车型列表；价格库存以实际预订时为准。')
+            bark(key, '神州租车：目标车型可选', STATION + '取还｜2026年10月17日08:00—18日08:00｜车型：' + '、'.join(fresh)
+                 + '。官网已核验网点、租期、营业状态与可选库存；实际价格和库存以预订时为准。')
             updated['last_push_status'] = 'sent'
-            updated['last_push_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
-            print('Bark车型通知已成功发送：'+'、'.join(fresh), flush=True)
+            updated['last_push_utc'] = utc_now()
+            print('Bark车型通知已成功发送：' + '、'.join(fresh), flush=True)
         except Exception as exc:
             updated['present_matches'] = last.get('present_matches', [])
             updated['last_push_status'] = 'failed:' + type(exc).__name__
             save_status(updated)
-            print('Bark通知失败，将在下一次准确匹配时重试：'+type(exc).__name__, flush=True)
+            print('Bark通知失败，下次准确匹配时重试：' + type(exc).__name__, flush=True)
             return 1
     if result['state'] == 'unknown':
         print('本轮未确认，不发送车源通知，不认定车型消失。', flush=True)
         if mode != 'diagnose' and last.get('last_status') != 'unknown':
             try:
-                bark(key, '神州租车监控查询异常',
-                     '大庆东站本轮无法完成严格校验，不代表无车。原因：'+result['why'][:80]
-                     +'。请查看Actions摘要。')
-                updated['last_fault_push_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+                bark(key, '神州租车监控查询异常', '本轮无法完成严格校验，不代表无车。原因：' + result['why'][:80] + '。请查看Actions摘要。')
+                updated['last_fault_push_utc'] = utc_now()
             except Exception as exc:
-                print('故障提醒失败：'+type(exc).__name__, flush=True)
+                print('故障提醒失败：' + type(exc).__name__, flush=True)
     save_status(updated)
     return 1 if result['state'] == 'unknown' else 0
 
