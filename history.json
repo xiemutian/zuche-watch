@@ -30,5 +30,13 @@
     "present_matches": [],
     "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211109502",
     "verification": {}
+  },
+  {
+    "last_checked_utc": "2026-10-12T06:18:02+00:00",
+    "last_status": "unknown",
+    "last_detail": "打开首页：TimeoutError",
+    "present_matches": [],
+    "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211752258",
+    "verification": {}
   }
 ]

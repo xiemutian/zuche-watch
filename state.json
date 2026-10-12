@@ -1,11 +1,11 @@
 {
   "present_matches": [],
   "last_status": "unknown",
-  "last_detail": "选择大庆市：TimeoutError",
-  "last_changed_utc": "2026-10-12T04:10:44+00:00",
-  "last_checked_utc": "2026-10-12T06:09:43+00:00",
-  "consecutive_unknown": 7,
-  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211109502",
+  "last_detail": "打开首页：TimeoutError",
+  "last_changed_utc": "2026-10-12T06:18:02+00:00",
+  "last_checked_utc": "2026-10-12T06:18:02+00:00",
+  "consecutive_unknown": 8,
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211752258",
   "schema_version": 3,
   "query": {
     "city": "大庆",
