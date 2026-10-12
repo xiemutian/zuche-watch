@@ -1,6 +1,9 @@
 {
   "present_matches": [],
   "last_status": "unknown",
-  "last_detail": "选择大庆市：SetupError：已尝试城市名称所在卡片，但仍未进入城市选择页；请提供城市入口父级结构日志",
-  "last_changed_utc": "2026-10-12T03:45:49+00:00"
+  "last_detail": "选择大庆市：TimeoutError",
+  "last_changed_utc": "2026-10-12T04:06:04+00:00",
+  "last_checked_utc": "2026-10-12T04:06:04+00:00",
+  "consecutive_unknown": 1,
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38202349551"
 }
