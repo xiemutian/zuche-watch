@@ -405,14 +405,10 @@ def gather():
         page = None
         stage = '启动浏览器'
         try:
-            # 默认 Chromium 即使 is_mobile=True 也可能仍采用桌面 UA。
-            # 指定 Android Chrome 移动端 UA，尽量获取与手机接近的 H5 页面。
+            # m.zuche.com本身提供H5；使用标准Chrome环境，与真实云端浏览器操作一致。
             context_opt = {'locale':'zh-CN','timezone_id':'Asia/Shanghai',
                            'viewport': {'width':390,'height':844},
-                           'device_scale_factor':1, 'is_mobile':True, 'has_touch':True,
-                           'user_agent': ('Mozilla/5.0 (Linux; Android 13; Pixel 7) '
-                                          'AppleWebKit/537.36 (KHTML, like Gecko) '
-                                          'Chrome/131.0.0.0 Mobile Safari/537.36')}
+                           'device_scale_factor':1, 'is_mobile':False, 'has_touch':False}
             state = os.environ.get('LOGIN_STATE_B64', '').strip()
             if state:
                 context_opt['storage_state'] = json.loads(base64.b64decode(state, validate=True).decode('utf-8'))
