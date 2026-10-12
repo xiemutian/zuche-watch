@@ -1,6 +1,6 @@
 """大庆全网点新能源车源监控。保留 monitor.py 作为原东站监控。"""
 from __future__ import annotations
-import json, os, re, urllib.parse, urllib.request
+import json, os, re, urllib.parse, urllib.request, urllib.error
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -90,12 +90,16 @@ def gather():
    return {'state':'possible' if found else 'notfound','matches':found,'checked':checked,'failures':failures,'warnings':warnings,'city_id':cid,'verified_utc':now(),'source':'official_web_api'}
   finally:ctx.dispose()
 def bark(key,items):
- if not key:return False
+ if not key:return False,'BARK_KEY_missing'
  url='https://api.day.app/'+key+'/大庆新能源车源新增/'+urllib.parse.quote('；'.join(f"{x['station_name']} {x['name']} ¥{x['price']} {x['pickup']}" for x in items),safe='')
  req=urllib.request.Request(url,method='GET')
  try:
-  with urllib.request.urlopen(req,timeout=20) as r:return r.status==200
- except Exception:return False
+  with urllib.request.urlopen(req,timeout=20) as r:
+   return (True,'') if r.status==200 else (False,f'HTTP_{r.status}')
+ except urllib.error.HTTPError as e:return False,f'HTTP_{e.code}'
+ except urllib.error.URLError as e:return False,f'URL_{type(e.reason).__name__}'
+ except TimeoutError:return False,'timeout'
+ except Exception as e:return False,type(e).__name__
 def main():
  old=json.loads(STATE.read_text()) if STATE.exists() else {'active':{}}
  retry_failed=False
@@ -112,10 +116,11 @@ def main():
  key=os.getenv('BARK_KEY',''); current={f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}":x for x in result.get('matches',[])}
  prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[]
  if result['state']=='possible': fresh=[x for k,x in current.items() if k not in prev]
- pushed=False
- if fresh and key:pushed=bark(key,fresh)
+ pushed=False; push_error=''
+ if fresh:pushed,push_error=bark(key,fresh)
  if result['state']=='possible':
   result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed')
+  if push_error: result['push_error']=push_error
   # Bark 失败时保留旧去重集合，下一轮继续重试，不把未送达车型标记为已通知。
   newactive=current if (not fresh or pushed) else prev
  elif result['state']=='notfound': result['new_count']=0; result['push']='not_triggered'; newactive={}
