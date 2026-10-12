@@ -1,4 +1,4 @@
-"""神州租车大庆东站车型监控 v2.4（城市卡片点击修复与无敏感信息诊断版）。
+"""神州租车大庆东站车型监控 v3（精确DOM选择与严格状态记录）。
 
 安全原则：网页交互/上下文确认失败时仅记录 unknown，不发送有车通知。
 该程序的 Playwright 控件适配未在真实神州网页验证，首次使用请检查 Actions 日志。
@@ -126,6 +126,8 @@ def assess(text: str, url: str, trusted_steps: set[str] | None = None) -> dict:
     valid, why = check_context(text, url, trusted_steps)
     if not valid:
         return {'state': 'unknown', 'matches': [], 'why': why}
+    if not trusted_steps or 'inventory_verified' not in trusted_steps:
+        return {'state':'unknown', 'matches':[], 'why':'车型卡片库存与取还上下文尚未完成结构化校验'}
     hits = extract_card_matches(text)
     return {'state': 'possible' if hits else 'notfound', 'matches': hits,
             'why': '车型卡片包含目标关键词' if hits else '已验证列表，目前未看到目标车型'}
@@ -137,12 +139,12 @@ def transition(previous: dict, result: dict) -> tuple[dict, list[str]]:
         before = []
     after = result['matches'] if result['state'] == 'possible' else ([] if result['state'] == 'notfound' else before)
     fresh = [x for x in after if x not in before] if result['state'] == 'possible' else []
-    if (after == before and previous.get('last_status') == result['state']
-            and previous.get('last_detail') == result['why']):
-        return previous, fresh
-    new = {'present_matches': after, 'last_status': result['state'],
+    new = {**previous, 'present_matches': after, 'last_status': result['state'],
            'last_detail': result['why'],
            'last_changed_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+    new['last_checked_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    new['consecutive_unknown'] = previous.get('consecutive_unknown', 0) + 1 if result['state'] == 'unknown' else 0
+    new['run_url'] = 'https://github.com/' + os.getenv('GITHUB_REPOSITORY', 'xiemutian/zuche-watch') + '/actions/runs/' + os.getenv('GITHUB_RUN_ID', '')
     return new, fresh
 
 
@@ -227,245 +229,103 @@ def city_dom_outline(page):
         return {'error':type(error).__name__}
 
 
+def wait_home(page):
+    page.locator('.selector.pickup .city .label-con em').wait_for(state='visible', timeout=30000)
+    page.get_by_role('button', name='去订车', exact=True).wait_for(state='visible', timeout=30000)
+
+
 def open_city_picker(page, which: str):
-    """点城市【值】所属的卡片，而不是无点击行为的'取车城市'标签。"""
-    if city_chooser_visible(page):
-        return
+    """2026-10-12真实网页验证：点击城市值，标签本身无导航行为。"""
     if which != '取车':
-        raise SetupError('只实现了取车城市的主动选择')
-    label = page.get_by_text('取车城市', exact=True)
-    print('城市入口父级结构（仅元素元数据）：' + json.dumps(city_dom_outline(page), ensure_ascii=False), flush=True)
-    if label.count() < 1:
-        raise SetupError('首页没有独立的取车城市标签')
-    node = label.first
-    # 神州H5标签与城市值通常是相邻/上下两行，监听器可能在共同父级上。
-    # 优先尝试低层父节点，避免误点包含去订车按钮的整张表单卡片。
-    for depth in range(1, 6):
-        node = node.locator('xpath=..')
-        try:
-            r = node.bounding_box(timeout=1800)
-            if not r:
-                continue
-            w,h = r['width'],r['height']
-            if w < 65 or h < 35 or h > 250 or w > 420:
-                continue
-            txt=node.inner_text(timeout=1800)
-            if '去订车' in txt:
-                continue
-            if '取车地址' in txt:
-                positions=[(.17,.60),(.25,.76)]
-            else:
-                positions=[(.65,.72),(.50,.55)]
-            for xratio,yratio in positions:
-                x=max(1,min(388,r['x']+w*xratio))
-                y=max(1,min(842,r['y']+h*yratio))
-                print(f'城市卡片点击：祖先层级{depth}, 坐标({int(x)},{int(y)}), 容器{int(w)}x{int(h)}',flush=True)
-                page.mouse.click(x,y)
-                page.wait_for_timeout(650)
-                if city_chooser_visible(page):
-                    print('成功打开选择城市页面',flush=True)
-                    return
-                # 页面出现非城市选择的导航时立即停止，不在错误页面继续试点。
-                if page.get_by_text('取车城市',exact=True).count()==0:
-                    raise SetupError('点击后进入未知页面；停止尝试以防误操作')
-        except SetupError:
-            raise
-        except Exception as error:
-            print('城市卡片点击未成功：'+type(error).__name__,flush=True)
-    # 某些布局在城市名称组件绑定 onClick，而不是整个标签的父级。
-    # 尝试靠近标题的城市值组件；不使用宽泛的全文搜索来误点广告。
-    for loc in [page.locator('[class*="city" i]').filter(has_text='取车城市'),
-                page.locator('[class*="addressCity" i]')]:
-        try:
-            for j in range(min(loc.count(),4)):
-                el=loc.nth(j)
-                if el.is_visible() and el.bounding_box():
-                    box=el.bounding_box()
-                    if box['height']>250 or box['width']>420:continue
-                    el.click(timeout=2300)
-                    page.wait_for_timeout(500)
-                    if city_chooser_visible(page):
-                        print('通过城市选择容器成功打开选择城市',flush=True)
-                        return
-        except Exception:pass
-    safe_cloud_diagnostics(page, '尝试城市卡片点击后')
-    raise SetupError('已尝试城市名称所在卡片，但仍未进入城市选择页；请提供城市入口父级结构日志')
+        raise SetupError('只实现取车城市选择')
+    wait_home(page)
+    page.locator('.selector.pickup .city .label-con').click(timeout=10000)
+    page.wait_for_url(re.compile(r'/citylist(?:\?|$)'), timeout=15000)
+    page.get_by_text('选择城市', exact=True).wait_for(state='visible', timeout=30000)
 
 
 def select_city(page, which: str):
-    """按截图匹配神州H5：选择城市 -> 当前定位城市：大庆 / 搜索城市。"""
-    body = page.locator('body')
     open_city_picker(page, which)
-    if not city_chooser_visible(page):
-        raise SetupError('城市卡片点击后，页面未出现搜索城市或当前定位城市')
-
-    # 截图中“当前定位城市：大庆”是一整个文本区域，不能用 exact=True 找孤立“大庆”。
-    current = page.get_by_text(re.compile(r'当前定位城市\s*[：:]\s*大庆'))
-    try:
-        for i in range(min(current.count(), 5)):
-            item = current.nth(i)
-            if item.is_visible():
-                item.click(timeout=2300)
-                page.wait_for_timeout(650)
-                if home_city_selected(body.inner_text(timeout=10000)):
-                    print('城市选取：使用当前定位城市（大庆）')
-                    return
-                break
-    except Exception:
-        pass
-
-    # 当前定位行可能不可点击，或者当前城市不一定是大庆。改用顶部“搜索城市”。
-    fields = [
-        page.get_by_placeholder('搜索城市'),
-        page.locator('input[placeholder*="搜索城市"]'),
-        page.locator('input[placeholder*="城市"]'),
-        page.locator('input[type="search"]'),
-    ]
-    filled = False
-    for field in fields:
-        try:
-            for i in range(min(field.count(), 5)):
-                inp = field.nth(i)
-                if inp.is_visible():
-                    inp.fill(CITY, timeout=2700)
-                    filled = True
-                    break
-            if filled:
-                break
-        except Exception:
-            continue
-    if not filled:
-        # 兼容“搜索城市”是一个需先点开的伪输入区域。
-        label = page.get_by_text('搜索城市', exact=True)
-        try:
-            if label.count() and label.first.is_visible():
-                label.first.click(timeout=2500)
-        except Exception:
-            pass
-        for field in fields:
-            try:
-                if field.count() and field.last.is_visible():
-                    field.last.fill(CITY, timeout=2700)
-                    filled = True
-                    break
-            except Exception:
-                continue
-    if not filled:
-        raise SetupError('城市选择页已打开，但无法填写“搜索城市”输入框')
-    page.wait_for_timeout(800)
-
-    # 搜索结果可能显示“大庆”或“大庆市”，使用精确文本，避免点击“当前定位城市”大区域。
-    choices = [
-        page.get_by_text('大庆', exact=True),
-        page.get_by_text('大庆市', exact=True),
-        page.locator('li').filter(has_text=re.compile(r'^\s*大庆市?\s*$')),
-        page.locator('[role="option"]').filter(has_text=re.compile(r'^\s*大庆市?\s*$')),
-    ]
-    click_first_visible(page, choices, '大庆城市搜索结果')
-    page.wait_for_timeout(650)
-    if not home_city_selected(body.inner_text(timeout=10000)):
-        raise SetupError('已选择“大庆”，但首页未显示正确的取车城市')
-    print('城市选取：搜索城市并选择大庆')
+    # 城市列表本身包含大庆，无需依赖定位或伪搜索框。
+    choice = page.get_by_text(CITY, exact=True)
+    choice.wait_for(state='visible', timeout=30000)
+    choice.click(timeout=10000)
+    page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
+    wait_home(page)
+    if page.locator('.selector.pickup .city .label-con em').inner_text().strip() != CITY:
+        raise SetupError('首页取车城市未准确显示大庆')
+    print('城市已验证：大庆', flush=True)
 
 
 def select_station(page, which: str = '取车'):
-    """与用户 10/12 截图一致：先打开地址页，切换“网点”标签，点击完整网点名。"""
-    controls = [
-        page.get_by_text('取车地址', exact=False),
-        page.get_by_text('地址/街道/酒店/景点名', exact=False),
-        page.get_by_text('请选择取车网点', exact=False),
-        page.locator('[class*="pickup"] [class*="address"]'),
-    ]
-    click_first_visible(page, controls, '取车地址')
-    page.wait_for_timeout(500)
-    try:
-        tab = page.get_by_text('网点', exact=True)
-        if tab.count() and tab.first.is_visible():
-            tab.first.click(timeout=2000)
-            page.wait_for_timeout(450)
-    except Exception:
-        pass
-    # 截图顶部“最近选择”中会直接出现该网点；否则搜索或查找龙凤区区域。
-    candidates = [page.get_by_text(STATION, exact=True)]
-    for loc in candidates:
-        try:
-            if loc.count() and loc.first.is_visible():
-                loc.first.click(timeout=3000)
-                page.wait_for_timeout(750)
-                return
-        except Exception:
-            pass
-    search = [page.locator('input[placeholder*="输入地址"]'),
-              page.locator('input[placeholder*="搜索"]'),
-              page.locator('input[type="search"]')]
-    for loc in search:
-        try:
-            if loc.count() and loc.first.is_visible():
-                loc.first.fill(STATION)
-                page.wait_for_timeout(1000)
-                break
-        except Exception:
-            continue
-    click_first_visible(page, [page.get_by_text(STATION, exact=True),
-                               page.get_by_text(STATION, exact=False)], STATION)
-    page.wait_for_timeout(700)
+    wait_home(page)
+    page.locator('.selector.pickup .addr .label-con').click(timeout=10000)
+    page.wait_for_url(re.compile(r'/poisearch(?:\?|$)'), timeout=15000)
+    page.get_by_text('网点', exact=True).wait_for(state='visible', timeout=30000)
+    cancel = page.get_by_role('button', name='取消', exact=True)
+    if cancel.count() and cancel.is_visible():
+        cancel.click()
+    page.get_by_text('网点', exact=True).click(timeout=10000)
+    station = page.get_by_text(STATION, exact=True)
+    station.wait_for(state='visible', timeout=30000)
+    station.click(timeout=10000)
+    page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
+    wait_home(page)
+    if page.locator('.selector.pickup .addr .label-con em').inner_text().strip() != STATION:
+        raise SetupError('首页取车网点未准确显示大庆东站服务点')
 
 
-def find_date_control(page, which: str):
-    # 当前 H5 首页存在两个「10月xx日 周x HH:MM」控件。
-    # 先尝试具名控件，再在日期样式匹配元素中查找。
-    names = ['取车时间', '取车日期'] if which == '取车' else ['还车时间', '还车日期']
-    for name in names:
-        locator = page.get_by_text(name, exact=False)
-        try:
-            if locator.count() and locator.last.is_visible():
-                locator.last.click(timeout=2500)
-                return
-        except Exception:
-            continue
-    dates = page.get_by_text(re.compile(r'\d{1,2}月\d{1,2}日'))
-    if dates.count() >= 2:
-        dates.nth(0 if which == '取车' else 1).click(timeout=2500)
-        return
-    raise SetupError(f'找不到{which}日期入口')
+def select_wheel_time(page, selector: str, target='08:00'):
+    wheel = page.locator(selector + ' .am-picker-col')
+    wheel.wait_for(state='visible', timeout=15000)
+    items = wheel.locator('.am-picker-col-item')
+    for attempt in range(8):
+        values = items.all_text_contents()
+        if target not in values:
+            raise SetupError('网点时间选项不包含08:00')
+        selected = wheel.locator('.am-picker-col-item-selected')
+        if selected.count() != 1:
+            raise SetupError('时间滚轮未显示唯一选中项')
+        current = selected.inner_text().strip()
+        if current == target:
+            return
+        # 使用实际滚轮行高进行鼠标拖动，不注入组件状态或伪造时间。
+        delta = values.index(target) - values.index(current)
+        row = selected.bounding_box()
+        box = wheel.bounding_box()
+        if not row or not box:
+            raise SetupError('无法读取时间滚轮尺寸')
+        step = max(-2, min(2, delta))
+        x = box['x'] + box['width'] / 2
+        y = box['y'] + box['height'] / 2
+        page.mouse.move(x, y)
+        page.mouse.down()
+        page.mouse.move(x, y - step * row['height'], steps=20)
+        page.wait_for_timeout(250)
+        page.mouse.up()
+        page.wait_for_timeout(600)
+    raise SetupError('时间滚轮未准确选中08:00')
 
 
-def choose_date_time(page, which: str, day: int):
-    find_date_control(page, which)
-    page.wait_for_timeout(600)
-    # 适用“日历选日 + 小时/分钟”的常见 H5 组件，但具体 DOM 必须由运行日志验证。
-    day_candidates = [
-        page.locator('[role="dialog"] button').filter(has_text=re.compile(rf'^\s*{day}\s*$')),
-        page.locator('[class*="calendar"] [class*="day"]').filter(has_text=re.compile(rf'^\s*{day}\s*$')),
-        page.get_by_text(str(day), exact=True),
-    ]
-    click_first_visible(page, day_candidates, f'10月{day}日')
-    page.wait_for_timeout(350)
-    # 仅选择明确表示08:00的时间选项；不会默认把原时间当成08点。
-    tm = [page.get_by_text('08:00', exact=True), page.get_by_text('8:00', exact=True),
-          page.locator('input[type="time"]')]
-    found_time = False
-    for loc in tm:
-        try:
-            if loc.count() and loc.last.is_visible():
-                if loc.last.evaluate('(el)=>el.tagName') == 'INPUT':
-                    loc.last.fill('08:00')
-                else:
-                    loc.last.click(timeout=2500)
-                found_time = True
-                break
-        except Exception:
-            continue
-    # 若组件采用滚轮，需要人工适配，禁止默认为时间设置成功。
-    if not found_time:
-        raise SetupError(f'{which}日期可能已选中，但未找到08:00时间控件，请提供该页面截图')
-    try:
-        confirm = page.get_by_text('确定', exact=True)
-        if confirm.count() and confirm.last.is_visible():
-            confirm.last.click(timeout=2000)
-    except Exception:
-        pass
-    page.wait_for_timeout(450)
+def choose_rental_period(page):
+    wait_home(page)
+    dates = page.locator('.select-car').get_by_text(re.compile(r'10月\d+日'))
+    dates.first.click(timeout=10000)
+    month = page.locator('.single-month').filter(has=page.get_by_text('2026年10月', exact=True))
+    month.wait_for(state='visible', timeout=15000)
+    page.get_by_text('清空', exact=True).click(timeout=10000)
+    for day, label in [(17, '取车'), (18, '还车')]:
+        cell = month.locator('.cell').filter(has=page.locator('.date-wrapper > .date').filter(has_text=re.compile(rf'^{day}$')))
+        if cell.count() != 1:
+            raise SetupError(f'10月{day}日单元格不唯一')
+        cell.click(timeout=10000)
+        page.wait_for_timeout(350)
+        if label not in cell.inner_text():
+            raise SetupError(f'10月{day}日未标记为{label}')
+    select_wheel_time(page, '.pickup-time')
+    select_wheel_time(page, '.return-time')
+    page.get_by_text('确定时间', exact=True).click(timeout=10000)
+    page.locator('.confirm-panel').wait_for(state='hidden', timeout=10000)
 
 
 def read_vehicle_list(page):
@@ -516,7 +376,7 @@ def gather():
             page = ctx.new_page()
             stage = '打开首页'
             page.goto(HOME, wait_until='domcontentloaded', timeout=40000)
-            page.wait_for_timeout(3000)
+            wait_home(page)
             # 异步渲染的站点在 domcontentloaded 后可能仍是一片空白。
             # 最多额外等待9秒，让首页关键元素有时间出现。
             for _ in range(6):
@@ -538,12 +398,7 @@ def gather():
             # 用户截图里“跨网点还车”关闭，和取车网点相同，无需还车控件。
             stage = '设置取车与还车时间'
             summary = page.locator('body').inner_text(timeout=10000)
-            if not (date_time_present(summary, PICKUP) and date_time_present(summary, RETURN)):
-                choose_date_time(page, '取车', 17)
-                page.wait_for_timeout(450)
-                summary = page.locator('body').inner_text(timeout=10000)
-                if not date_time_present(summary, RETURN):
-                    choose_date_time(page, '还车', 18)
+            choose_rental_period(page)
             print('步骤3：已执行租期选择，进入提交前校验')
             stage = '提交前检查日期和网点'
             summary = page.locator('body').inner_text(timeout=10000)
@@ -575,6 +430,17 @@ def gather():
 def debug_capture(page, stage: str, reason: str):
     """公开仓库安全模式：只记录步骤与原因，不保存网页截图和登录信息。"""
     print('诊断阶段：'+stage+'；结果：'+reason[:160])
+    safe_cloud_diagnostics(page, stage)
+    try:
+        info = page.evaluate("""() => ({
+          months: Array.from(document.querySelectorAll('.month-title')).map(e=>e.textContent).filter(t=>/^\d{4}年\d{1,2}月$/.test(t)),
+          calendarSelected: Array.from(document.querySelectorAll('.rent-date-start,.rent-date-end')).map(e=>({class:e.className,text:(e.innerText||'').replace(/[^0-9取还车]/g,'')})),
+          times: Array.from(document.querySelectorAll('.am-picker-col-item-selected')).map(e=>e.textContent).filter(t=>/^\d{2}:\d{2}$/.test(t)),
+          visibleClasses: Array.from(document.querySelectorAll('div,section')).filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).map(e=>e.className).filter(c=>typeof c==='string' && /calendar|date|time|car|rent|vehicle|list/.test(c)).slice(0,65)
+        })""")
+        print('安全控件诊断：'+json.dumps(info, ensure_ascii=False))
+    except Exception:
+        pass
 
 
 def bark(key, title, body):
@@ -639,7 +505,7 @@ def main():
             except Exception as err:
                 print('技术故障提醒发送失败：'+type(err).__name__)
     STATE.write_text(json.dumps(updated, ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    return 0
+    return 1 if result['state'] == 'unknown' else 0
 
 
 if __name__=='__main__':
