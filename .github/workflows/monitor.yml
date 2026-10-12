@@ -2,6 +2,8 @@
 name: 神州租车云端监控
 
 on:
+  push:
+    paths: [monitor.py, requirements.txt, tests/**, .github/workflows/monitor.yml]
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -49,7 +51,7 @@ jobs:
           VERIFY_TERMS: ${{ vars.VERIFY_TERMS }}
         run: python monitor.py
       - name: 保存去重状态
-        if: ${{ success() && inputs.mode != 'test_push' }}
+        if: ${{ always() && inputs.mode != 'test_push' }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
