@@ -163,32 +163,98 @@ def click_first_visible(page, locators: list, description: str, timeout=2500):
     raise SetupError(f'无法定位{description}控件（可能是网站界面变化）')
 
 
+def home_city_selected(text: str) -> bool:
+    """校验首页顶部的取车城市，避免广告或其他地名误触发跳过选择。"""
+    front = (text or '')[:450]
+    label = re.search(r'取车城市', front)
+    if not label:
+        return False
+    return bool(re.search(r'(?<![\u4e00-\u9fa5])大庆(?!东站)', front[label.end():label.end() + 100]))
+
+
 def select_city(page, which: str):
-    """仅尝试官方页面文字/输入框，不调用或伪造内部 API。"""
-    # 神州 H5 页面可能写作「取车城市北京」或者城市选择单项。
-    city_control = [
-        page.locator('[class*="pickup"] [class*="city"]') if which == '取车' else page.locator('[class*="return"] [class*="city"]'),
-        page.locator('div').filter(has_text=f'{which}城市').filter(has=page.locator('span')).last,
-        page.get_by_text(f'{which}城市', exact=False).last,
+    """按截图匹配神州H5：选择城市 -> 当前定位城市：大庆 / 搜索城市。"""
+    # 城市入口和具体城市往往分别位于两行；点击标题本身通常可冒泡打开选择页。
+    body = page.locator('body')
+    if '选择城市' not in body.inner_text(timeout=10000)[:150]:
+        controls = [
+            page.get_by_text(f'{which}城市', exact=True),
+            page.get_by_text(f'{which}城市', exact=False),
+            page.locator('[class*="pickup"] [class*="city"]') if which == '取车' else page.locator('[class*="return"] [class*="city"]'),
+        ]
+        click_first_visible(page, controls, f'{which}城市')
+        page.wait_for_timeout(650)
+    chooser = body.inner_text(timeout=10000)
+    if '选择城市' not in chooser[:200] and '搜索城市' not in chooser[:220]:
+        raise SetupError('点击城市入口后，未进入“选择城市”页面')
+
+    # 截图中“当前定位城市：大庆”是一整个文本区域，不能用 exact=True 找孤立“大庆”。
+    current = page.get_by_text(re.compile(r'当前定位城市\s*[：:]\s*大庆'))
+    try:
+        for i in range(min(current.count(), 5)):
+            item = current.nth(i)
+            if item.is_visible():
+                item.click(timeout=2300)
+                page.wait_for_timeout(650)
+                if home_city_selected(body.inner_text(timeout=10000)):
+                    print('城市选取：使用当前定位城市（大庆）')
+                    return
+                break
+    except Exception:
+        pass
+
+    # 当前定位行可能不可点击，或者当前城市不一定是大庆。改用顶部“搜索城市”。
+    fields = [
+        page.get_by_placeholder('搜索城市'),
+        page.locator('input[placeholder*="搜索城市"]'),
+        page.locator('input[placeholder*="城市"]'),
+        page.locator('input[type="search"]'),
     ]
-    click_first_visible(page, city_control, f'{which}城市')
-    page.wait_for_timeout(500)
-    inputs = [page.locator('input[placeholder*="城市"]'), page.locator('input[placeholder*="搜索"]'),
-              page.locator('input[type="search"]')]
     filled = False
-    for loc in inputs:
+    for field in fields:
         try:
-            if loc.count() and loc.last.is_visible():
-                loc.last.fill(CITY)
-                filled = True
+            for i in range(min(field.count(), 5)):
+                inp = field.nth(i)
+                if inp.is_visible():
+                    inp.fill(CITY, timeout=2700)
+                    filled = True
+                    break
+            if filled:
                 break
         except Exception:
             continue
-    if filled:
-        page.wait_for_timeout(700)
-    click_first_visible(page, [page.get_by_text(CITY, exact=True), page.locator('li').filter(has_text=CITY),
-                                page.locator('[class*="city"]').filter(has_text=CITY)], f'城市选项{CITY}')
-    page.wait_for_timeout(500)
+    if not filled:
+        # 兼容“搜索城市”是一个需先点开的伪输入区域。
+        label = page.get_by_text('搜索城市', exact=True)
+        try:
+            if label.count() and label.first.is_visible():
+                label.first.click(timeout=2500)
+        except Exception:
+            pass
+        for field in fields:
+            try:
+                if field.count() and field.last.is_visible():
+                    field.last.fill(CITY, timeout=2700)
+                    filled = True
+                    break
+            except Exception:
+                continue
+    if not filled:
+        raise SetupError('城市选择页已打开，但无法填写“搜索城市”输入框')
+    page.wait_for_timeout(800)
+
+    # 搜索结果可能显示“大庆”或“大庆市”，使用精确文本，避免点击“当前定位城市”大区域。
+    choices = [
+        page.get_by_text('大庆', exact=True),
+        page.get_by_text('大庆市', exact=True),
+        page.locator('li').filter(has_text=re.compile(r'^\s*大庆市?\s*$')),
+        page.locator('[role="option"]').filter(has_text=re.compile(r'^\s*大庆市?\s*$')),
+    ]
+    click_first_visible(page, choices, '大庆城市搜索结果')
+    page.wait_for_timeout(650)
+    if not home_city_selected(body.inner_text(timeout=10000)):
+        raise SetupError('已选择“大庆”，但首页未显示正确的取车城市')
+    print('城市选取：搜索城市并选择大庆')
 
 
 def select_station(page, which: str = '取车'):
@@ -338,7 +404,7 @@ def gather():
             stage = '选择大庆市'
             # 登录会话可能已经保存城市；可跳过重复选择。
             summary = page.locator('body').inner_text(timeout=10000)
-            if CITY not in summary[:300]:
+            if not home_city_selected(summary):
                 select_city(page, '取车')
             print('步骤1：检查/选择取车城市（大庆）')
             stage = '选择大庆东站服务点'
@@ -443,7 +509,7 @@ def main():
         if last.get('last_status') != 'unknown':
             try:
                 bark(key, '神州租车监控需要检查',
-                     '大庆东站监控本次未能确认网页条件；请查看 GitHub Actions 日志与诊断截图。原因：' + result['why'][:80])
+                     '大庆东站监控本次未能确认网页条件；请查看 GitHub Actions 运行日志。原因：' + result['why'][:80])
                 print('已发送一次技术故障提醒')
             except Exception as err:
                 print('技术故障提醒发送失败：'+type(err).__name__)
