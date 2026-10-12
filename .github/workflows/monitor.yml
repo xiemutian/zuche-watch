@@ -3,7 +3,7 @@ name: 神州租车云端监控
 
 on:
   push:
-    paths: [monitor.py, requirements.txt, tests/**, .github/workflows/monitor.yml]
+    paths: [monitor.py, requirements.txt, test_monitor.py, .github/workflows/monitor.yml]
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -16,6 +16,7 @@ on:
         options:
           - monitor
           - test_push
+          - diagnose
 
 permissions:
   contents: write
@@ -35,8 +36,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: 安装浏览器
+          cache: pip
+      - name: 安全回归测试
         if: ${{ inputs.mode != 'test_push' }}
+        run: python -m unittest -v test_monitor
+      - name: 检查监控期限
+        id: window
+        run: |
+          python - <<'PYCODE'
+          import os
+          from datetime import datetime, timezone
+          active = datetime.now(timezone.utc) < datetime(2026, 10, 17, tzinfo=timezone.utc)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('active=' + str(active).lower() + '\n')
+          PYCODE
+      - name: 安装浏览器
+        if: ${{ inputs.mode != 'test_push' && steps.window.outputs.active == 'true' }}
         run: |
           python -m pip install -r requirements.txt
           python -m playwright install --with-deps chromium
@@ -44,11 +59,7 @@ jobs:
         env:
           MODE: ${{ inputs.mode || 'monitor' }}
           BARK_KEY: ${{ secrets.BARK_KEY }}
-          WATCH_URL: ${{ secrets.WATCH_URL }}
           LOGIN_STATE_B64: ${{ secrets.LOGIN_STATE_B64 }}
-          KEYWORDS: ${{ vars.KEYWORDS }}
-          PAGE_MARKER: ${{ vars.PAGE_MARKER }}
-          VERIFY_TERMS: ${{ vars.VERIFY_TERMS }}
         run: python monitor.py
       - name: 保存去重状态
         if: ${{ always() && inputs.mode != 'test_push' }}
@@ -56,7 +67,16 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add state.json
+          if [ -f history.json ]; then git add history.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'chore: update watch state [skip ci]'
             git push
           fi
+      - name: 保存安全检查报告
+        if: ${{ always() && inputs.mode != 'test_push' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-result-${{ github.run_id }}
+          path: check-result.json
+          if-no-files-found: warn
+          retention-days: 14
