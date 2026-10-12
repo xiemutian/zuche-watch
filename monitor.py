@@ -285,6 +285,8 @@ def select_city(page, which: str):
     open_city_picker(page, which)
     page.locator('#city-re-input').fill('', timeout=10000)
     page.locator('#city-re-input').press_sequentially(CITY, delay=100)
+    page.locator('#city-re-input').press('ArrowRight')
+    print('城市搜索输入核验：'+str(page.locator('#city-re-input').input_value() == CITY), flush=True)
     choice = page.locator('.search-city-item').filter(has_text=re.compile('^大庆$'))
     print('城市步骤：等待大庆选项', flush=True)
     choice.wait_for(state='visible', timeout=30000)
@@ -472,6 +474,8 @@ def debug_capture(page, stage: str, reason: str):
     safe_cloud_diagnostics(page, stage)
     try:
         info = page.evaluate(r"""() => ({
+          searchTargetOutline: Array.from(document.querySelectorAll('.city-re-name-text,.search-city-item')).filter(e=>e.textContent.trim()==='大庆').map(e=>e.parentElement.outerHTML.slice(0,1800)),
+          searchInput: Array.from(document.querySelectorAll('#city-re-input')).map(e=>({tag:e.tagName,hasCorrectValue:e.value==='大庆',outer:e.outerHTML.slice(0,500)})),
           selectedCity: Array.from(document.querySelectorAll('.selector.pickup .city em')).map(e=>e.textContent).filter(t=>/^[\u4e00-\u9fff]{1,12}$/.test(t)),
           cityStructure: Array.from(document.querySelectorAll('.selector.pickup .city,.selector.pickup .city *')).map(e=>({tag:e.tagName,class:e.className,rect:JSON.stringify(e.getBoundingClientRect()),isDaqing:e.textContent.trim()==='大庆'})),
           months: Array.from(document.querySelectorAll('.month-title')).map(e=>e.textContent).filter(t=>/^\d{4}年\d{1,2}月$/.test(t)),
