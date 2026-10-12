@@ -67,7 +67,7 @@ def gather():
    if p.password:opts['proxy']['password']=urllib.parse.unquote(p.password)
   ctx=pw.request.new_context(base_url=HOME,extra_http_headers={'Referer':HOME},**opts)
   try:
-   cid=city_id(post(ctx,CITY_API,{})); found=[]; checked=[]; failures=[]
+   cid=city_id(post(ctx,CITY_API,{})); found=[]; checked=[]; failures=[]; warnings=[]
    for pickup,ret in WINDOWS:
     lease={'cityId':cid,'entrance':1,'estimatedPickupTime':pickup,'estimatedReturnTime':ret}
     # 先用不带租期的官方清单枚举全部网点；带租期接口会隐藏当时不可服务的网点。
@@ -76,12 +76,15 @@ def gather():
      sid=str(s['deptId']); name=str(s.get('deptName')); addr=str(s.get('deptAddress'))
      try:
       back=stations(post(ctx,DEPT_API,{**lease,'pickupFlag':0,'pickupDeptId':sid}))
-      if not any(str(x.get('deptId'))==sid and x.get('inWorkFlag') is True for x in back): raise SetupError('同网点还车不可用')
+      # deptList 在“该租期无车/不可服务”时会隐藏网点；这不是车型查询的充分理由。
+      # 继续请求 chooseCar，避免把“无库存”误报成“不能同网点还车”。
+      return_open=any(str(x.get('deptId'))==sid and x.get('inWorkFlag') is True for x in back)
+      if not return_open: warnings.append({'id':sid,'name':name,'pickup':pickup,'return':ret,'reason':'lease_dept_hidden_or_no_inventory'})
       req={'pickupCityId':cid,'returnCityId':cid,'pickupDeptId':sid,'pickupTime':pickup,'returnTime':ret,'entrance':1,'holidaysWaitingFlag':0}
-      hit=cars(post(ctx,CAR_API,req),sid,cid,pickup,ret); found.extend(hit); checked.append({'id':sid,'name':name,'address':addr,'pickup':pickup,'return':ret,'count':len(hit)})
+      hit=cars(post(ctx,CAR_API,req),sid,cid,pickup,ret); found.extend(hit); checked.append({'id':sid,'name':name,'address':addr,'pickup':pickup,'return':ret,'count':len(hit),'return_open':return_open})
      except Exception as e: failures.append({'id':sid,'name':name,'pickup':pickup,'return':ret,'reason':type(e).__name__})
    if failures and not checked: raise SetupError('所有网点查询失败')
-   return {'state':'possible' if found else 'notfound','matches':found,'checked':checked,'failures':failures,'city_id':cid,'verified_utc':now(),'source':'official_web_api'}
+   return {'state':'possible' if found else 'notfound','matches':found,'checked':checked,'failures':failures,'warnings':warnings,'city_id':cid,'verified_utc':now(),'source':'official_web_api'}
   finally:ctx.dispose()
 def bark(key,items):
  if not key:return False
@@ -110,6 +113,6 @@ def main():
  if HISTORY.exists():
   try: hist=json.loads(HISTORY.read_text())
   except Exception: hist=[]
- hist=(hist if isinstance(hist,list) else [])+[{k:result.get(k) for k in ('state','new_count','push','verified_utc','checked','failures')}]; HISTORY.write_text(json.dumps(hist[-240:],ensure_ascii=False,indent=2)+'\n')
+ hist=(hist if isinstance(hist,list) else [])+[{k:result.get(k) for k in ('state','new_count','push','verified_utc','checked','failures','warnings')}]; HISTORY.write_text(json.dumps(hist[-240:],ensure_ascii=False,indent=2)+'\n')
  print(json.dumps({k:result.get(k) for k in ('state','new_count','push','verified_utc')},ensure_ascii=False)); return 0 if result['state']!='unknown' else 1
 if __name__=='__main__': raise SystemExit(main())
