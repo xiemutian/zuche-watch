@@ -139,13 +139,48 @@ def transition(previous: dict, result: dict) -> tuple[dict, list[str]]:
         before = []
     after = result['matches'] if result['state'] == 'possible' else ([] if result['state'] == 'notfound' else before)
     fresh = [x for x in after if x not in before] if result['state'] == 'possible' else []
-    new = {**previous, 'present_matches': after, 'last_status': result['state'],
-           'last_detail': result['why'],
-           'last_changed_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')}
-    new['last_checked_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    new['consecutive_unknown'] = previous.get('consecutive_unknown', 0) + 1 if result['state'] == 'unknown' else 0
-    new['run_url'] = 'https://github.com/' + os.getenv('GITHUB_REPOSITORY', 'xiemutian/zuche-watch') + '/actions/runs/' + os.getenv('GITHUB_RUN_ID', '')
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    changed = (before != after or previous.get('last_status') != result['state'] or previous.get('last_detail') != result['why'])
+    new = {**previous, 'schema_version': 3, 'present_matches': after,
+           'last_status': result['state'], 'last_detail': result['why'],
+           'last_changed_utc': now if changed else previous.get('last_changed_utc', now),
+           'last_checked_utc': now,
+           'consecutive_unknown': previous.get('consecutive_unknown', 0) + 1 if result['state'] == 'unknown' else 0,
+           'query': {'city':CITY, 'pickup_station':STATION, 'return_station':STATION,
+                     'pickup':PICKUP, 'return':RETURN, 'timezone':'Asia/Shanghai', 'targets':['特斯拉','日产N7']},
+           'run_url': 'https://github.com/' + os.getenv('GITHUB_REPOSITORY', 'xiemutian/zuche-watch') + '/actions/runs/' + os.getenv('GITHUB_RUN_ID', '')}
+    if result['state'] in ('possible', 'notfound'):
+        new['last_verified_utc'] = now
+        new['last_verified_status'] = result['state']
+    new['verification'] = result.get('verification', {})
     return new, fresh
+
+
+def save_status(state: dict):
+    # 临时文件原子替换，运行失败也由Actions always步骤提交状态。
+    temporary = STATE.with_suffix('.tmp')
+    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    temporary.replace(STATE)
+    Path('check-result.json').write_text(json.dumps(state, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    history = Path(__file__).with_name('history.json')
+    try:
+        entries = json.loads(history.read_text(encoding='utf-8')) if history.exists() else []
+    except (OSError, ValueError):
+        entries = []
+    entries.append({k: state[k] for k in ('last_checked_utc','last_status','last_detail','present_matches','run_url','verification') if k in state})
+    history.write_text(json.dumps(entries[-240:], ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    summary = os.getenv('GITHUB_STEP_SUMMARY')
+    if summary:
+        with open(summary, 'a', encoding='utf-8') as f:
+            f.write('### 神州租车监控结果\n\n')
+            f.write('| 项目 | 结果 |\n|---|---|\n')
+            for label, value in [('状态', state['last_status']), ('检查时间（UTC）', state['last_checked_utc']),
+                                  ('取还网点', STATION), ('租期（北京时间）', PICKUP+' — '+RETURN),
+                                  ('目标车型', '特斯拉 / 日产N7'), ('说明', state['last_detail']),
+                                  ('连续未确认次数', state['consecutive_unknown'])]:
+                f.write('| '+label+' | '+str(value).replace('|','/').replace('\n',' ')+' |\n')
+            f.write('\nunknown 表示本轮未验证成功，不表示无车；仅完整验证后发送车型通知。\n')
+
 
 
 class SetupError(Exception):
@@ -248,10 +283,13 @@ def open_city_picker(page, which: str):
 
 def select_city(page, which: str):
     open_city_picker(page, which)
-    # 城市列表本身包含大庆，无需依赖定位或伪搜索框。
+    page.locator('#city-re-input').fill('', timeout=10000)
+    page.locator('#city-re-input').press_sequentially(CITY, delay=100)
+    page.wait_for_timeout(800)
     choice = page.get_by_text(CITY, exact=True)
     print('城市步骤：等待大庆选项', flush=True)
     choice.wait_for(state='visible', timeout=30000)
+    print('大庆选项结构：'+choice.evaluate('(el)=>el.outerHTML'), flush=True)
     choice.click(timeout=10000)
     print('城市步骤：已点大庆，等待首页', flush=True)
     page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
@@ -439,6 +477,7 @@ def debug_capture(page, stage: str, reason: str):
     safe_cloud_diagnostics(page, stage)
     try:
         info = page.evaluate(r"""() => ({
+          selectedCity: Array.from(document.querySelectorAll('.selector.pickup .city em')).map(e=>e.textContent).filter(t=>/^[\u4e00-\u9fff]{1,12}$/.test(t)),
           cityStructure: Array.from(document.querySelectorAll('.selector.pickup .city,.selector.pickup .city *')).map(e=>({tag:e.tagName,class:e.className,rect:JSON.stringify(e.getBoundingClientRect()),isDaqing:e.textContent.trim()==='大庆'})),
           months: Array.from(document.querySelectorAll('.month-title')).map(e=>e.textContent).filter(t=>/^\d{4}年\d{1,2}月$/.test(t)),
           calendarSelected: Array.from(document.querySelectorAll('.rent-date-start,.rent-date-end')).map(e=>({class:e.className,text:(e.innerText||'').replace(/[^0-9取还车]/g,'')})),
@@ -472,48 +511,73 @@ def bark(key, title, body):
 
 def main():
     key = os.getenv('BARK_KEY', '').strip()
-    if not key:
-        print('缺少 GitHub Secret: BARK_KEY')
+    mode = os.getenv('MODE', 'monitor')
+    if mode == 'test_push':
+        if not key:
+            print('缺少 GitHub Secret: BARK_KEY')
+            return 2
+        try:
+            bark(key, '神州租车云端推送测试', '推送通道正常。这不是车源提醒。')
+            print('测试推送已发出')
+            return 0
+        except Exception as exc:
+            print('推送测试失败：'+type(exc).__name__)
+            return 1
+    try:
+        last = json.loads(STATE.read_text(encoding='utf-8')) if STATE.exists() else {}
+        if not isinstance(last, dict):
+            raise ValueError('state格式错误')
+    except (OSError, ValueError):
+        state, _ = transition({}, {'state':'unknown','matches':[], 'why':'去重状态文件无法读取，停止通知'})
+        save_status(state)
+        return 1
+    now = datetime.now(timezone.utc)
+    if now >= datetime(2026, 10, 17, 0, 0, tzinfo=timezone.utc):
+        state, _ = transition(last, {'state':'stopped','matches':[], 'why':'已到约定取车时刻，停止网页查询与通知'})
+        save_status(state)
+        print('已停止监控：2026-10-17 08:00（北京时间）')
+        return 0
+    if mode != 'diagnose' and not key:
+        state, _ = transition(last, {'state':'unknown','matches':[], 'why':'缺少GitHub Secret: BARK_KEY'})
+        save_status(state)
         return 2
-    if os.getenv('MODE', 'monitor') == 'test_push':
-        bark(key, '神州租车云端推送测试', '推送通道正常。这不是车源提醒。')
-        print('测试推送已发出')
-        return 0
-    # 距离使用日期很近才有意义；超过取车时间停止提醒。
-    now = datetime.now(timezone.utc).astimezone(__import__('zoneinfo').ZoneInfo('Asia/Shanghai'))
-    if now >= datetime(2026, 10, 17, 8, 0, tzinfo=__import__('zoneinfo').ZoneInfo('Asia/Shanghai')):
-        print('已过约定取车时刻：2026-10-17 08:00，停止监控和通知。')
-        return 0
     try:
         result = gather()
     except Exception as exc:
         result = {'state':'unknown', 'matches':[], 'why':'浏览器启动失败：' + type(exc).__name__}
-    print('检查结果：', result['state'], result['why'])
-    last = json.loads(STATE.read_text(encoding='utf-8')) if STATE.exists() else {}
+    print('检查结果：', result['state'], result['why'], flush=True)
     updated, fresh = transition(last, result)
-    if fresh:
+    if mode == 'diagnose':
+        # 诊断不改变已发送通知的去重集合。
+        updated['present_matches'] = last.get('present_matches', [])
+        updated['last_push_status'] = 'disabled_for_diagnosis'
+    elif fresh:
         try:
-            bark(key, '神州租车：发现目标车型',
-                 '大庆东站｜10月17日08:00—18日08:00｜出现：' + '、'.join(fresh)
-                 + '。仅表示车型列表匹配，请打开官方页面核实库存并预订。')
-            print('Bark 发现通知已发出：', '、'.join(fresh))
+            bark(key, '神州租车：目标车型可选',
+                 '大庆东站服务点取还｜2026年10月17日08:00—18日08:00｜车型：' + '、'.join(fresh)
+                 + '。已核验网点、租期和可选车型列表；价格库存以实际预订时为准。')
+            updated['last_push_status'] = 'sent'
+            updated['last_push_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+            print('Bark车型通知已成功发送：'+'、'.join(fresh), flush=True)
         except Exception as exc:
-            print('Bark 通知失败：', type(exc).__name__)
             updated['present_matches'] = last.get('present_matches', [])
-            STATE.write_text(json.dumps(updated, ensure_ascii=False, indent=2)+'\n',encoding='utf-8')
+            updated['last_push_status'] = 'failed:' + type(exc).__name__
+            save_status(updated)
+            print('Bark通知失败，将在下一次准确匹配时重试：'+type(exc).__name__, flush=True)
             return 1
-    if result['state']=='unknown':
-        print('本轮结果不确定，不发送车源发现通知，不认定车型已消失。')
-        if last.get('last_status') != 'unknown':
+    if result['state'] == 'unknown':
+        print('本轮未确认，不发送车源通知，不认定车型消失。', flush=True)
+        if mode != 'diagnose' and last.get('last_status') != 'unknown':
             try:
-                bark(key, '神州租车监控需要检查',
-                     '大庆东站监控本次未能确认网页条件；请查看 GitHub Actions 运行日志。原因：' + result['why'][:80])
-                print('已发送一次技术故障提醒')
-            except Exception as err:
-                print('技术故障提醒发送失败：'+type(err).__name__)
-    STATE.write_text(json.dumps(updated, ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                bark(key, '神州租车监控查询异常',
+                     '大庆东站本轮无法完成严格校验，不代表无车。原因：'+result['why'][:80]
+                     +'。请查看Actions摘要。')
+                updated['last_fault_push_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+            except Exception as exc:
+                print('故障提醒失败：'+type(exc).__name__, flush=True)
+    save_status(updated)
     return 1 if result['state'] == 'unknown' else 0
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     sys.exit(main())
