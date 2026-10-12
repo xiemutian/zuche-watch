@@ -1,0 +1,59 @@
+
+name: 神州租车云端监控
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '监控或测试推送'
+        type: choice
+        required: true
+        default: monitor
+        options:
+          - monitor
+          - test_push
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zuche-watch
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: 获取代码
+        uses: actions/checkout@v4
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安装浏览器
+        if: ${{ inputs.mode != 'test_push' }}
+        run: |
+          python -m pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: 检查网页并推送 Bark
+        env:
+          MODE: ${{ inputs.mode || 'monitor' }}
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          WATCH_URL: ${{ secrets.WATCH_URL }}
+          LOGIN_STATE_B64: ${{ secrets.LOGIN_STATE_B64 }}
+          KEYWORDS: ${{ vars.KEYWORDS }}
+          PAGE_MARKER: ${{ vars.PAGE_MARKER }}
+          VERIFY_TERMS: ${{ vars.VERIFY_TERMS }}
+        run: python monitor.py
+      - name: 保存去重状态
+        if: ${{ success() && inputs.mode != 'test_push' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add state.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: update watch state [skip ci]'
+            git push
