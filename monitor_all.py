@@ -35,7 +35,8 @@ def stations(data):
    if not isinstance(s,dict): continue
    sid=str(s.get('deptId','')); addr=str(s.get('deptAddress',''))
    # 只保留实际地址在大庆市行政区内的网点，排除接口同城联动返回的安达/肇东。
-   if sid.isdigit() and s.get('inWorkFlag') is True and '大庆市' in addr: out[sid]=s
+   # 保留完整官方网点清单；不可服务网点也要记录，不能因 inWorkFlag=false 而静默消失。
+   if sid.isdigit() and '大庆市' in addr: out[sid]=s
  if not out: raise SetupError('没有找到大庆市可服务取车网点')
  return sorted(out.values(),key=lambda x:(str(x.get('deptName')),str(x.get('deptId'))))
 def price(m):
