@@ -8,6 +8,9 @@ from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parent; STATE=ROOT/'state_all.json'; HISTORY=ROOT/'history_all.json'; REPORT=ROOT/'check-result-all.json'
 HOME='https://m.zuche.com/'; CITY='大庆'; CITY_API='/action/carrctapi/order/cityList/v1'; DEPT_API='/action/carrctapi/order/deptList/v1'; CAR_API='/resource/carrctapi/order/chooseCar/v3'
+# 神州接口把安达作为“大庆”城市联动网点返回；按实际租车范围纳入安达，排除杜尔伯特和肇东。
+INCLUDE_LINKED_STATION_IDS={'139846'}
+EXCLUDE_STATION_IDS={'95181','142920'}
 WINDOWS=[('2026-10-16 18:00','2026-10-17 18:00'),('2026-10-17 09:00','2026-10-18 09:00')]
 LIMIT=Decimal('150')
 NEV_RE=re.compile(r'(纯电|电动|新能源|插电|增程|特斯拉|理想|腾势|岚图|尚界|小鹏|蔚来|零跑|极氪|比亚迪|方程豹|阿维塔|智己|问界|鸿蒙智行|深蓝)',re.I)
@@ -36,7 +39,7 @@ def stations(data):
    sid=str(s.get('deptId','')); addr=str(s.get('deptAddress',''))
    # 只保留实际地址在大庆市行政区内的网点，排除接口同城联动返回的安达/肇东。
    # 保留完整官方网点清单；不可服务网点也要记录，不能因 inWorkFlag=false 而静默消失。
-   if sid.isdigit() and '大庆市' in addr: out[sid]=s
+   if sid.isdigit() and sid not in EXCLUDE_STATION_IDS and ('大庆市' in addr or sid in INCLUDE_LINKED_STATION_IDS): out[sid]=s
  if not out: raise SetupError('没有找到大庆市可服务取车网点')
  return sorted(out.values(),key=lambda x:(str(x.get('deptName')),str(x.get('deptId'))))
 def price(m):
