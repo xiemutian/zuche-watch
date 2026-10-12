@@ -3,9 +3,9 @@
   "last_status": "notfound",
   "last_detail": "已核验东站完整车型列表，目前无目标可选车型",
   "last_changed_utc": "2026-10-12T06:40:47+00:00",
-  "last_checked_utc": "2026-10-12T06:40:47+00:00",
+  "last_checked_utc": "2026-10-12T06:42:09+00:00",
   "consecutive_unknown": 0,
-  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38213654182",
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38213804652",
   "schema_version": 4,
   "query": {
     "city": "大庆",
@@ -139,9 +139,9 @@
         "daily_price": "498"
       }
     ],
-    "verified_utc": "2026-10-12T06:40:47+00:00"
+    "verified_utc": "2026-10-12T06:42:09+00:00"
   },
-  "last_verified_utc": "2026-10-12T06:40:47+00:00",
+  "last_verified_utc": "2026-10-12T06:42:09+00:00",
   "last_verified_status": "notfound",
   "last_push_status": "not_triggered"
 }
