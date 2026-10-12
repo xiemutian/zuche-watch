@@ -283,6 +283,7 @@ def open_city_picker(page, which: str):
 
 def select_city(page, which: str):
     open_city_picker(page, which)
+    page.locator('.city-re-name-text').filter(has_text=re.compile('^大庆$')).wait_for(state='visible', timeout=30000)
     page.locator('#city-re-input').fill('', timeout=10000)
     page.locator('#city-re-input').press_sequentially(CITY, delay=100)
     page.locator('#city-re-input').press('ArrowRight')
@@ -425,6 +426,13 @@ def gather():
                 if '去订车' in initial_text or ('取车城市' in initial_text and '取车地址' in initial_text):
                     break
                 page.wait_for_timeout(1500)
+            stage = '等待首页城市初始化'
+            # 官网自身在currentCity.cityId就绪后才恢复用户选中的城市。
+            # 只读取该布尔值，不输出LocalStorage、Cookie或任何登录信息。
+            page.wait_for_function(
+                "() => { try { const s = JSON.parse(localStorage.getItem('rentSelectCityAddrInfo') || '{}'); return !!(s.currentCity && s.currentCity.cityId); } catch (_) { return false; } }",
+                timeout=40000)
+            print('首页后台城市初始化已完成', flush=True)
             stage = '选择大庆市'
             safe_cloud_diagnostics(page, stage)
             # 登录会话可能已经保存城市；可跳过重复选择。
