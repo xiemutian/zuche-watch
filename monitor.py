@@ -1,4 +1,4 @@
-"""神州租车大庆东站车型监控（GitHub Actions 试运行版（公开仓库安全模式））。
+"""神州租车大庆东站车型监控 v2.3（公开仓库诊断版）。
 
 安全原则：网页交互/上下文确认失败时仅记录 unknown，不发送有车通知。
 该程序的 Playwright 控件适配未在真实神州网页验证，首次使用请检查 Actions 日志。
@@ -170,6 +170,32 @@ def home_city_selected(text: str) -> bool:
     if not label:
         return False
     return bool(re.search(r'(?<![\u4e00-\u9fa5])大庆(?!东站)', front[label.end():label.end() + 100]))
+
+
+def safe_cloud_diagnostics(page, stage: str):
+    """公开仓库仅记录布尔值及页面结构，不输出 Cookie、URL 参数或网页原文。"""
+    try:
+        parsed = urllib.parse.urlsplit(page.url)
+        body = page.locator('body')
+        txt = body.inner_text(timeout=5000) if body.count() else ''
+        words = ('神州租车', '取车城市', '取车地址', '去订车',
+                 '选择城市', '搜索城市', '当前定位城市', '大庆',
+                 '验证码', '安全验证', '登录', '访问频繁', '系统繁忙')
+        d = {
+            '阶段': stage,
+            '域名': parsed.hostname,
+            '路径': parsed.path,
+            '路由': parsed.fragment.split('?')[0][:75],
+            '可见文字长度': len(txt),
+            '页面关键词': {word: word in txt for word in words},
+            '取车城市精确元素数': page.get_by_text('取车城市', exact=True).count(),
+            '取车城市模糊元素数': page.get_by_text('取车城市', exact=False).count(),
+            '大庆独立元素数': page.get_by_text('大庆', exact=True).count(),
+            '页面输入框数量': page.locator('input').count(),
+        }
+        print('云端网页结构诊断（不含个人信息）：' + json.dumps(d, ensure_ascii=False), flush=True)
+    except Exception as error:
+        print('网页诊断无法完成：' + type(error).__name__, flush=True)
 
 
 def select_city(page, which: str):
@@ -390,9 +416,14 @@ def gather():
         page = None
         stage = '启动浏览器'
         try:
+            # 默认 Chromium 即使 is_mobile=True 也可能仍采用桌面 UA。
+            # 指定 Android Chrome 移动端 UA，尽量获取与手机接近的 H5 页面。
             context_opt = {'locale':'zh-CN','timezone_id':'Asia/Shanghai',
                            'viewport': {'width':390,'height':844},
-                           'device_scale_factor':1, 'is_mobile':True, 'has_touch':True}
+                           'device_scale_factor':1, 'is_mobile':True, 'has_touch':True,
+                           'user_agent': ('Mozilla/5.0 (Linux; Android 13; Pixel 7) '
+                                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                                          'Chrome/131.0.0.0 Mobile Safari/537.36')}
             state = os.environ.get('LOGIN_STATE_B64', '').strip()
             if state:
                 context_opt['storage_state'] = json.loads(base64.b64decode(state, validate=True).decode('utf-8'))
@@ -401,12 +432,21 @@ def gather():
             stage = '打开首页'
             page.goto(HOME, wait_until='domcontentloaded', timeout=40000)
             page.wait_for_timeout(3000)
+            # 异步渲染的站点在 domcontentloaded 后可能仍是一片空白。
+            # 最多额外等待9秒，让首页关键元素有时间出现。
+            for _ in range(6):
+                initial_text = page.locator('body').inner_text(timeout=10000)
+                if '去订车' in initial_text or ('取车城市' in initial_text and '取车地址' in initial_text):
+                    break
+                page.wait_for_timeout(1500)
             stage = '选择大庆市'
+            safe_cloud_diagnostics(page, stage)
             # 登录会话可能已经保存城市；可跳过重复选择。
             summary = page.locator('body').inner_text(timeout=10000)
             if not home_city_selected(summary):
                 select_city(page, '取车')
-            print('步骤1：检查/选择取车城市（大庆）')
+            print('步骤1：检查/选择取车城市（大庆）', flush=True)
+            safe_cloud_diagnostics(page, '城市选择完成')
             stage = '选择大庆东站服务点'
             select_station(page)
             print('步骤2：已点击取车网点')
