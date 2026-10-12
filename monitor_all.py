@@ -98,13 +98,19 @@ def bark(key,items):
  except Exception:return False
 def main():
  old=json.loads(STATE.read_text()) if STATE.exists() else {'active':{}}
+ retry_failed=False
+ if HISTORY.exists():
+  try:
+   prior=json.loads(HISTORY.read_text())
+   retry_failed=any(isinstance(x,dict) and x.get('push')=='failed' for x in (prior[-3:] if isinstance(prior,list) else []))
+  except Exception: pass
  cutoff=datetime(2026,10,17,1,tzinfo=timezone.utc)
  if datetime.now(timezone.utc)>=cutoff: result={'state':'stopped','matches':[],'why':'监控租期已结束','verified_utc':now()}
  else:
   try: result=gather()
   except Exception as e: result={'state':'unknown','matches':[],'why':type(e).__name__,'verified_utc':now()}
  key=os.getenv('BARK_KEY',''); current={f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}":x for x in result.get('matches',[])}
- prev=old.get('active',{}) if isinstance(old,dict) else {}; fresh=[]
+ prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[]
  if result['state']=='possible': fresh=[x for k,x in current.items() if k not in prev]
  pushed=False
  if fresh and key:pushed=bark(key,fresh)
