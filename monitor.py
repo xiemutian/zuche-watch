@@ -239,8 +239,10 @@ def open_city_picker(page, which: str):
     if which != '取车':
         raise SetupError('只实现取车城市选择')
     wait_home(page)
-    page.locator('.selector.pickup .city .label-con').click(timeout=10000)
+    print('城市步骤：点击实际城市值', flush=True)
+    page.locator('.selector.pickup .city .label-con em').click(timeout=10000)
     page.wait_for_url(re.compile(r'/citylist(?:\?|$)'), timeout=15000)
+    print('城市步骤：已到citylist，等待标题', flush=True)
     page.get_by_text('选择城市', exact=True).wait_for(state='visible', timeout=30000)
 
 
@@ -248,8 +250,10 @@ def select_city(page, which: str):
     open_city_picker(page, which)
     # 城市列表本身包含大庆，无需依赖定位或伪搜索框。
     choice = page.get_by_text(CITY, exact=True)
+    print('城市步骤：等待大庆选项', flush=True)
     choice.wait_for(state='visible', timeout=30000)
     choice.click(timeout=10000)
+    print('城市步骤：已点大庆，等待首页', flush=True)
     page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
     wait_home(page)
     if page.locator('.selector.pickup .city .label-con em').inner_text().strip() != CITY:
@@ -259,7 +263,7 @@ def select_city(page, which: str):
 
 def select_station(page, which: str = '取车'):
     wait_home(page)
-    page.locator('.selector.pickup .addr .label-con').click(timeout=10000)
+    page.locator('.selector.pickup .addr .label-con em').click(timeout=10000)
     page.wait_for_url(re.compile(r'/poisearch(?:\?|$)'), timeout=15000)
     page.get_by_text('网点', exact=True).wait_for(state='visible', timeout=30000)
     cancel = page.get_by_role('button', name='取消', exact=True)
@@ -432,7 +436,8 @@ def debug_capture(page, stage: str, reason: str):
     print('诊断阶段：'+stage+'；结果：'+reason[:160])
     safe_cloud_diagnostics(page, stage)
     try:
-        info = page.evaluate("""() => ({
+        info = page.evaluate(r"""() => ({
+          cityStructure: Array.from(document.querySelectorAll('.selector.pickup .city,.selector.pickup .city *')).map(e=>({tag:e.tagName,class:e.className,rect:JSON.stringify(e.getBoundingClientRect()),isDaqing:e.textContent.trim()==='大庆'})),
           months: Array.from(document.querySelectorAll('.month-title')).map(e=>e.textContent).filter(t=>/^\d{4}年\d{1,2}月$/.test(t)),
           calendarSelected: Array.from(document.querySelectorAll('.rent-date-start,.rent-date-end')).map(e=>({class:e.className,text:(e.innerText||'').replace(/[^0-9取还车]/g,'')})),
           times: Array.from(document.querySelectorAll('.am-picker-col-item-selected')).map(e=>e.textContent).filter(t=>/^\d{2}:\d{2}$/.test(t)),
