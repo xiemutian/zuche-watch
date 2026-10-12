@@ -38,5 +38,14 @@
     "present_matches": [],
     "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211752258",
     "verification": {}
+  },
+  {
+    "last_checked_utc": "2026-10-12T06:40:47+00:00",
+    "last_status": "notfound",
+    "last_detail": "已核验东站完整车型列表，目前无目标可选车型",
+    "present_matches": [],
+    "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38213654182",
+    "verified_model_count": 18,
+    "last_push_status": "not_triggered"
   }
 ]

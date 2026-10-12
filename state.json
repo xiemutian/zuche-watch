@@ -1,12 +1,12 @@
 {
   "present_matches": [],
-  "last_status": "unknown",
-  "last_detail": "打开首页：TimeoutError",
-  "last_changed_utc": "2026-10-12T06:18:02+00:00",
-  "last_checked_utc": "2026-10-12T06:18:02+00:00",
-  "consecutive_unknown": 8,
-  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38211752258",
-  "schema_version": 3,
+  "last_status": "notfound",
+  "last_detail": "已核验东站完整车型列表，目前无目标可选车型",
+  "last_changed_utc": "2026-10-12T06:40:47+00:00",
+  "last_checked_utc": "2026-10-12T06:40:47+00:00",
+  "consecutive_unknown": 0,
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38213654182",
+  "schema_version": 4,
   "query": {
     "city": "大庆",
     "pickup_station": "大庆东站服务点",
@@ -19,5 +19,129 @@
       "日产N7"
     ]
   },
-  "verification": {}
+  "verification": {
+    "source": "official_web_api",
+    "city_id": "87",
+    "pickup_dept_id": "88783",
+    "return_dept_id": "88783",
+    "pickup_and_return_open": true,
+    "pickup": "2026-10-17 08:00",
+    "return": "2026-10-18 08:00",
+    "model_count": 18,
+    "target_models": [],
+    "observed_models": [
+      {
+        "model_id": "1395",
+        "name": "雪佛兰科鲁泽",
+        "inventory_type": 1,
+        "daily_price": "38"
+      },
+      {
+        "model_id": "3038",
+        "name": "大众朗逸新锐",
+        "inventory_type": 1,
+        "daily_price": "48"
+      },
+      {
+        "model_id": "1640",
+        "name": "大众探影",
+        "inventory_type": 1,
+        "daily_price": "48"
+      },
+      {
+        "model_id": "1521",
+        "name": "大众捷达VS7",
+        "inventory_type": 1,
+        "daily_price": "58"
+      },
+      {
+        "model_id": "4615",
+        "name": "大众高尔夫",
+        "inventory_type": 1,
+        "daily_price": "68"
+      },
+      {
+        "model_id": "2940",
+        "name": "丰田锋兰达",
+        "inventory_type": 1,
+        "daily_price": "78"
+      },
+      {
+        "model_id": "4616",
+        "name": "领克01",
+        "inventory_type": 1,
+        "daily_price": "118"
+      },
+      {
+        "model_id": "3066",
+        "name": "大众迈腾",
+        "inventory_type": 1,
+        "daily_price": "148"
+      },
+      {
+        "model_id": "4852",
+        "name": "北京BJ30",
+        "inventory_type": 1,
+        "daily_price": "148"
+      },
+      {
+        "model_id": "2382",
+        "name": "广汽传祺M6",
+        "inventory_type": 1,
+        "daily_price": "188"
+      },
+      {
+        "model_id": "989",
+        "name": "别克GL8",
+        "inventory_type": 1,
+        "daily_price": "218"
+      },
+      {
+        "model_id": "5036",
+        "name": "尚界H5",
+        "inventory_type": 1,
+        "daily_price": "228"
+      },
+      {
+        "model_id": "843",
+        "name": "沃尔沃S90",
+        "inventory_type": 1,
+        "daily_price": "248"
+      },
+      {
+        "model_id": "5090",
+        "name": "大众途昂Pro",
+        "inventory_type": 1,
+        "daily_price": "278"
+      },
+      {
+        "model_id": "4151",
+        "name": "理想L7",
+        "inventory_type": 1,
+        "daily_price": "328"
+      },
+      {
+        "model_id": "2298",
+        "name": "别克GL8豪华版",
+        "inventory_type": 1,
+        "daily_price": "388"
+      },
+      {
+        "model_id": "3311",
+        "name": "腾势D9",
+        "inventory_type": 1,
+        "daily_price": "438"
+      },
+      {
+        "model_id": "5230",
+        "name": "岚图梦想家乾崑",
+        "inventory_type": 1,
+        "daily_price": "498"
+      }
+    ],
+    "verified_utc": "2026-10-12T06:40:47+00:00"
+  },
+  "last_verified_utc": "2026-10-12T06:40:47+00:00",
+  "last_verified_status": "notfound",
+  "last_push_status": "not_triggered"
 }
