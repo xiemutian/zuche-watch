@@ -256,6 +256,7 @@ def select_city(page, which: str):
     print('城市步骤：已点大庆，等待首页', flush=True)
     page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
     wait_home(page)
+    page.locator('.selector.pickup .city .label-con em').filter(has_text=re.compile('^大庆$')).wait_for(state='visible', timeout=30000)
     if page.locator('.selector.pickup .city .label-con em').inner_text().strip() != CITY:
         raise SetupError('首页取车城市未准确显示大庆')
     print('城市已验证：大庆', flush=True)
@@ -275,6 +276,7 @@ def select_station(page, which: str = '取车'):
     station.click(timeout=10000)
     page.wait_for_url(re.compile(r'#/rent$'), timeout=15000)
     wait_home(page)
+    page.locator('.selector.pickup .addr .label-con em').filter(has_text=re.compile('^大庆东站服务点$')).wait_for(state='visible', timeout=30000)
     if page.locator('.selector.pickup .addr .label-con em').inner_text().strip() != STATION:
         raise SetupError('首页取车网点未准确显示大庆东站服务点')
 
