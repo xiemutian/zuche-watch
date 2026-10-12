@@ -1,4 +1,4 @@
-"""神州租车大庆东站车型监控 v2.3（公开仓库诊断版）。
+"""神州租车大庆东站车型监控 v2.4（城市卡片点击修复与无敏感信息诊断版）。
 
 安全原则：网页交互/上下文确认失败时仅记录 unknown，不发送有车通知。
 该程序的 Playwright 控件适配未在真实神州网页验证，首次使用请检查 Actions 日志。
@@ -198,21 +198,106 @@ def safe_cloud_diagnostics(page, stage: str):
         print('网页诊断无法完成：' + type(error).__name__, flush=True)
 
 
+def city_chooser_visible(page) -> bool:
+    """同时确认标题与搜索/定位信息，避免把首页其它城市文案当作选择器。"""
+    txt = page.locator('body').inner_text(timeout=9000)
+    return ('选择城市' in txt[:350] and
+            ('搜索城市' in txt[:550] or '当前定位城市' in txt[:550]))
+
+
+def city_dom_outline(page):
+    """只输出标签与祖先结构信息，不记录用户网页文字。"""
+    label = page.get_by_text('取车城市', exact=True)
+    try:
+        return label.first.evaluate("""(el) => {
+          let n=el, rows=[];
+          for(let depth=0; n && depth<6; depth++, n=n.parentElement){
+            const rect=n.getBoundingClientRect();
+            const t=(n.innerText||'').trim();
+            rows.push({level:depth,tag:n.tagName.toLowerCase(),
+              className:String(n.className||'').slice(0,90),
+              role:n.getAttribute('role')||'',
+              width:Math.round(rect.width),height:Math.round(rect.height),
+              chars:t.length, hasAddress:t.includes('取车地址'),
+              hasOrder:t.includes('去订车'),hasCity:t.includes('取车城市')});
+          }
+          return rows;
+        }""")
+    except Exception as error:
+        return {'error':type(error).__name__}
+
+
+def open_city_picker(page, which: str):
+    """点城市【值】所属的卡片，而不是无点击行为的'取车城市'标签。"""
+    if city_chooser_visible(page):
+        return
+    if which != '取车':
+        raise SetupError('只实现了取车城市的主动选择')
+    label = page.get_by_text('取车城市', exact=True)
+    print('城市入口父级结构（仅元素元数据）：' + json.dumps(city_dom_outline(page), ensure_ascii=False), flush=True)
+    if label.count() < 1:
+        raise SetupError('首页没有独立的取车城市标签')
+    node = label.first
+    # 神州H5标签与城市值通常是相邻/上下两行，监听器可能在共同父级上。
+    # 优先尝试低层父节点，避免误点包含去订车按钮的整张表单卡片。
+    for depth in range(1, 6):
+        node = node.locator('xpath=..')
+        try:
+            r = node.bounding_box(timeout=1800)
+            if not r:
+                continue
+            w,h = r['width'],r['height']
+            if w < 65 or h < 35 or h > 250 or w > 420:
+                continue
+            txt=node.inner_text(timeout=1800)
+            if '去订车' in txt:
+                continue
+            if '取车地址' in txt:
+                positions=[(.17,.60),(.25,.76)]
+            else:
+                positions=[(.65,.72),(.50,.55)]
+            for xratio,yratio in positions:
+                x=max(1,min(388,r['x']+w*xratio))
+                y=max(1,min(842,r['y']+h*yratio))
+                print(f'城市卡片点击：祖先层级{depth}, 坐标({int(x)},{int(y)}), 容器{int(w)}x{int(h)}',flush=True)
+                page.mouse.click(x,y)
+                page.wait_for_timeout(650)
+                if city_chooser_visible(page):
+                    print('成功打开选择城市页面',flush=True)
+                    return
+                # 页面出现非城市选择的导航时立即停止，不在错误页面继续试点。
+                if page.get_by_text('取车城市',exact=True).count()==0:
+                    raise SetupError('点击后进入未知页面；停止尝试以防误操作')
+        except SetupError:
+            raise
+        except Exception as error:
+            print('城市卡片点击未成功：'+type(error).__name__,flush=True)
+    # 某些布局在城市名称组件绑定 onClick，而不是整个标签的父级。
+    # 尝试靠近标题的城市值组件；不使用宽泛的全文搜索来误点广告。
+    for loc in [page.locator('[class*="city" i]').filter(has_text='取车城市'),
+                page.locator('[class*="addressCity" i]')]:
+        try:
+            for j in range(min(loc.count(),4)):
+                el=loc.nth(j)
+                if el.is_visible() and el.bounding_box():
+                    box=el.bounding_box()
+                    if box['height']>250 or box['width']>420:continue
+                    el.click(timeout=2300)
+                    page.wait_for_timeout(500)
+                    if city_chooser_visible(page):
+                        print('通过城市选择容器成功打开选择城市',flush=True)
+                        return
+        except Exception:pass
+    safe_cloud_diagnostics(page, '尝试城市卡片点击后')
+    raise SetupError('已尝试城市名称所在卡片，但仍未进入城市选择页；请提供城市入口父级结构日志')
+
+
 def select_city(page, which: str):
     """按截图匹配神州H5：选择城市 -> 当前定位城市：大庆 / 搜索城市。"""
-    # 城市入口和具体城市往往分别位于两行；点击标题本身通常可冒泡打开选择页。
     body = page.locator('body')
-    if '选择城市' not in body.inner_text(timeout=10000)[:150]:
-        controls = [
-            page.get_by_text(f'{which}城市', exact=True),
-            page.get_by_text(f'{which}城市', exact=False),
-            page.locator('[class*="pickup"] [class*="city"]') if which == '取车' else page.locator('[class*="return"] [class*="city"]'),
-        ]
-        click_first_visible(page, controls, f'{which}城市')
-        page.wait_for_timeout(650)
-    chooser = body.inner_text(timeout=10000)
-    if '选择城市' not in chooser[:200] and '搜索城市' not in chooser[:220]:
-        raise SetupError('点击城市入口后，未进入“选择城市”页面')
+    open_city_picker(page, which)
+    if not city_chooser_visible(page):
+        raise SetupError('城市卡片点击后，页面未出现搜索城市或当前定位城市')
 
     # 截图中“当前定位城市：大庆”是一整个文本区域，不能用 exact=True 找孤立“大庆”。
     current = page.get_by_text(re.compile(r'当前定位城市\s*[：:]\s*大庆'))
