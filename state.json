@@ -3,7 +3,21 @@
   "last_status": "unknown",
   "last_detail": "选择大庆市：TimeoutError",
   "last_changed_utc": "2026-10-12T04:10:44+00:00",
-  "last_checked_utc": "2026-10-12T04:10:44+00:00",
-  "consecutive_unknown": 3,
-  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38202646213"
+  "last_checked_utc": "2026-10-12T06:01:00+00:00",
+  "consecutive_unknown": 4,
+  "run_url": "https://github.com/xiemutian/zuche-watch/actions/runs/38210380960",
+  "schema_version": 3,
+  "query": {
+    "city": "大庆",
+    "pickup_station": "大庆东站服务点",
+    "return_station": "大庆东站服务点",
+    "pickup": "2026-10-17 08:00",
+    "return": "2026-10-18 08:00",
+    "timezone": "Asia/Shanghai",
+    "targets": [
+      "特斯拉",
+      "日产N7"
+    ]
+  },
+  "verification": {}
 }
