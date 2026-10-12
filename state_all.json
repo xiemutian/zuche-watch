@@ -183,10 +183,10 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-12T10:54:01+00:00",
+  "verified_utc": "2026-10-12T10:55:07+00:00",
   "source": "official_web_api",
-  "new_count": 2,
-  "push": "failed",
+  "new_count": 0,
+  "push": "not_triggered",
   "active": {
     "139846|2026-10-16 18:00|2026-10-17 18:00|4137": {
       "model_id": "4137",
