@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+
 ROOT=Path(__file__).resolve().parent; STATE=ROOT/'state_all.json'; HISTORY=ROOT/'history_all.json'; REPORT=ROOT/'check-result-all.json'
 HOME='https://m.zuche.com/'; CITY='大庆'; CITY_API='/action/carrctapi/order/cityList/v1'; DEPT_API='/action/carrctapi/order/deptList/v1'; CAR_API='/resource/carrctapi/order/chooseCar/v3'
 # 神州接口把安达作为“大庆”城市联动网点返回；按实际租车范围纳入安达，排除杜尔伯特和肇东。
@@ -110,7 +111,7 @@ def main():
    prior=json.loads(HISTORY.read_text())
    retry_failed=any(isinstance(x,dict) and x.get('push')=='failed' for x in (prior[-3:] if isinstance(prior,list) else []))
   except Exception: pass
- cutoff=datetime(2026,10,17,1,tzinfo=timezone.utc)
+ cutoff=datetime(2026,10,18,1,tzinfo=timezone.utc)
  if datetime.now(timezone.utc)>=cutoff: result={'state':'stopped','matches':[],'why':'监控租期已结束','verified_utc':now()}
  else:
   try: result=gather()
@@ -118,20 +119,3 @@ def main():
  key=os.getenv('BARK_KEY',''); current={f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}":x for x in result.get('matches',[])}
  prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[]
  if result['state']=='possible': fresh=[x for k,x in current.items() if k not in prev]
- pushed=False; push_error=''
- if fresh:pushed,push_error=bark(key,fresh)
- if result['state']=='possible':
-  result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed')
-  if push_error: result['push_error']=push_error
-  # Bark 失败时保留旧去重集合，下一轮继续重试，不把未送达车型标记为已通知。
-  newactive=current if (not fresh or pushed) else prev
- elif result['state']=='notfound': result['new_count']=0; result['push']='not_triggered'; newactive={}
- else: result['new_count']=0; result['push']='not_triggered'; newactive=prev
- result['active']=newactive; result['verified_utc']=result.get('verified_utc',now()); STATE.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n'); REPORT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
- hist=[]
- if HISTORY.exists():
-  try: hist=json.loads(HISTORY.read_text())
-  except Exception: hist=[]
- hist=(hist if isinstance(hist,list) else [])+[{k:result.get(k) for k in ('state','new_count','push','verified_utc','checked','failures','warnings')}]; HISTORY.write_text(json.dumps(hist[-240:],ensure_ascii=False,indent=2)+'\n')
- print(json.dumps({k:result.get(k) for k in ('state','new_count','push','verified_utc')},ensure_ascii=False)); return 0 if result['state']!='unknown' else 1
-if __name__=='__main__': raise SystemExit(main())
