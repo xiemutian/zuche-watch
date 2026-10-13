@@ -4,7 +4,7 @@ on:
   push:
     paths: [monitor.py, monitor_all.py, requirements.txt, test_monitor.py, .github/workflows/monitor.yml]
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0,10,20,30,40,50 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -48,7 +48,7 @@ jobs:
           python - <<'PYCODE'
           import os
           from datetime import datetime, timezone
-          active = datetime.now(timezone.utc) < datetime(2026, 10, 17, tzinfo=timezone.utc)
+          active = datetime.now(timezone.utc) < datetime(2026, 10, 18, 1, 0, tzinfo=timezone.utc)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('active=' + str(active).lower() + '\n')
           PYCODE
