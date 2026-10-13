@@ -119,7 +119,8 @@ def main():
   try: result=gather()
   except Exception as e: result={'state':'unknown','matches':[],'why':type(e).__name__,'verified_utc':now()}
  key=os.getenv('BARK_KEY',''); current={f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}":x for x in result.get('matches',[])}
- prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[] pushed=False; push_error=''
+ prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[]
+ pushed=False; push_error=''
  if fresh:pushed,push_error=bark(key,fresh)
  if result['state']=='possible':
   result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed')
