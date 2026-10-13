@@ -1,5 +1,6 @@
 name: 神州租车云端监控
 
+
 on:
   push:
     paths: [monitor.py, monitor_all.py, requirements.txt, test_monitor.py, .github/workflows/monitor.yml]
@@ -17,17 +18,21 @@ on:
           - test_push
           - diagnose
 
+
 permissions:
   contents: write
+  actions: write
+
 
 concurrency:
   group: zuche-watch
   cancel-in-progress: false
 
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - name: 获取代码
         uses: actions/checkout@v4
@@ -83,3 +88,10 @@ jobs:
             check-result-all.json
           if-no-files-found: warn
           retention-days: 14
+      - name: 十分钟后自动续下一轮
+        if: ${{ steps.window.outputs.active == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode != 'test_push')) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 540
+          gh workflow run monitor.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=monitor
