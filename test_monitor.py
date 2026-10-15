@@ -2,6 +2,9 @@
 import copy
 import unittest
 import monitor as m
+import monitor_all as a
+from unittest.mock import Mock, patch
+import io
 
 def ok(content):
     return {'status':'SUCCESS','code':1,'content':content}
@@ -86,5 +89,85 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(fresh,['特斯拉'])
         state,fresh=m.transition(state,{'state':'possible','matches':['特斯拉'],'why':'已核验'})
         self.assertFalse(fresh)
+
+def hit(station='88783',model='5049'):
+    return {'station_id':station,'station_name':'测试网点','model_id':model,
+            'name':'日产N7','price':'128','pickup':a.WINDOWS[0][0],'return':a.WINDOWS[0][1]}
+
+def result(items,checked=None,state=None):
+    return {'state':state or ('possible' if items else 'notfound'),'matches':items,
+            'checked':checked if checked is not None else [
+                {'id':x['station_id'],'pickup':x['pickup'],'return':x['return']} for x in items],
+            'failures':[]}
+
+class AllStationNotificationTests(unittest.TestCase):
+    def test_new_then_unchanged(self):
+        send=Mock(return_value=(True,''))
+        first=a.notify_result(result([hit()]),{},'test',send)
+        self.assertEqual((first['new_count'],first['push']),(1,'sent'))
+        second=a.notify_result(result([hit()]),first,'test',send)
+        self.assertEqual((second['new_count'],second['push']),(0,'not_triggered'))
+        send.assert_called_once()
+
+    def test_failed_delivery_is_retried(self):
+        send=Mock(side_effect=[(False,'timeout'),(True,'')])
+        first=a.notify_result(result([hit()]),{},'test',send)
+        self.assertEqual(first['active'],{})
+        self.assertEqual(first['health'],'push_failed')
+        second=a.notify_result(result([hit()]),first,'test',send)
+        self.assertEqual(second['push'],'sent')
+        self.assertEqual(second['new_count'],1)
+
+    def test_legacy_poisoned_active_backfill_once(self):
+        x=hit();legacy={'active':{a.match_key(x):x},'push':'not_triggered'}
+        send=Mock(return_value=(True,''))
+        fixed=a.notify_result(result([x]),legacy,'test',send)
+        self.assertEqual(fixed['new_count'],1)
+        self.assertTrue(fixed['notification_migrated'])
+        self.assertEqual(fixed['notification_reason'],'verified_backfill_after_fix')
+        a.notify_result(result([x]),fixed,'test',send)
+        send.assert_called_once()
+
+    def test_unknown_never_sends(self):
+        send=Mock();x=hit()
+        old={'notification_schema':2,'active':{a.match_key(x):x}}
+        unknown=a.notify_result(result([],state='unknown'),old,'test',send)
+        self.assertEqual(unknown['active'],old['active']);send.assert_not_called()
+
+    def test_partial_failure_preserves_dedup(self):
+        oldhit=hit('118379');newhit=hit()
+        old={'notification_schema':2,'active':{a.match_key(oldhit):oldhit}}
+        r=result([newhit]);r['failures']=[{'id':'118379','reason':'SetupError'}]
+        send=Mock(return_value=(True,''))
+        out=a.notify_result(r,old,'test',send)
+        self.assertEqual(len(out['active']),2)
+        self.assertEqual(out['health'],'partial')
+        self.assertEqual(send.call_args.args[1],[newhit])
+
+    def test_verified_disappear_and_reappear(self):
+        x=hit();send=Mock(return_value=(True,''))
+        first=a.notify_result(result([x]),{},'test',send)
+        gone=a.notify_result(result([],checked=first['checked']),first,'test',send)
+        self.assertFalse(gone['active'])
+        again=a.notify_result(result([x]),gone,'test',send)
+        self.assertEqual(again['new_count'],1)
+
+    def test_only_new_model_sent(self):
+        x=hit();y=hit(model='4137');send=Mock(return_value=(True,''))
+        old={'notification_schema':2,'active':{a.match_key(x):x}}
+        out=a.notify_result(result([x,y]),old,'test',send)
+        self.assertEqual(out['new_count'],1);self.assertEqual(send.call_args.args[1],[y])
+
+    def test_bark_requires_json_ack(self):
+        for body,expected in [(b'{"code":200}',True),(b'{"code":400}',False),(b'not json',False)]:
+            response=io.BytesIO(body);response.status=200
+            with patch.object(a.urllib.request,'urlopen',return_value=response):
+                self.assertEqual(a.bark('not-a-real-key',[hit()])[0],expected)
+
+    def test_missing_station_or_waitlist_not_match(self):
+        with self.assertRaises(a.SetupError):a.cars(ok({'deptHangModels':[]}), '88783','87',*a.WINDOWS[0])
+        for inventory in (2,3):
+            data=listing(inventory=inventory)
+            self.assertEqual(a.cars(data,'88783','87',*a.WINDOWS[0]),[])
 
 if __name__=='__main__':unittest.main()
