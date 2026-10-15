@@ -61,6 +61,15 @@
       "return_open": true
     },
     {
+      "id": "95174",
+      "name": "摩码广场自助点",
+      "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
+      "pickup": "2026-10-16 18:00",
+      "return": "2026-10-17 18:00",
+      "count": 0,
+      "return_open": true
+    },
+    {
       "id": "100529",
       "name": "让胡路万达广场自助点",
       "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
@@ -125,14 +134,6 @@
       "detail": "缺少指定网点完整车型列表"
     },
     {
-      "id": "95174",
-      "name": "摩码广场自助点",
-      "pickup": "2026-10-16 18:00",
-      "return": "2026-10-17 18:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    },
-    {
       "id": "88755",
       "name": "盛景商城自助点",
       "pickup": "2026-10-16 18:00",
@@ -182,7 +183,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-15T14:58:12+00:00",
+  "verified_utc": "2026-10-15T15:07:44+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
