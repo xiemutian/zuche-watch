@@ -4,7 +4,6 @@ import json, os, re, urllib.parse, urllib.request, urllib.error
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from playwright.sync_api import sync_playwright
 
 
 
@@ -65,6 +64,7 @@ def cars(data,sid,cid,pickup,ret):
   if int(inv) in (0,1) and p is not None and p < LIMIT and is_nev(m): result.append({'model_id':str(m['modelId']),'name':str(m['modelName']),'price':str(p),'inventory_type':int(inv),'station_id':sid,'station_name':str(groups[0].get('deptName')),'pickup':pickup,'return':ret})
  return result
 def gather():
+ from playwright.sync_api import sync_playwright
  with sync_playwright() as pw:
   opts={}; pu=urllib.request.getproxies().get('https')
   if pu:
@@ -88,52 +88,72 @@ def gather():
       if not return_open: warnings.append({'id':sid,'name':name,'pickup':pickup,'return':ret,'reason':'lease_dept_hidden_or_no_inventory'})
       req={'pickupCityId':cid,'returnCityId':cid,'pickupDeptId':sid,'pickupTime':pickup,'returnTime':ret,'entrance':1,'holidaysWaitingFlag':0}
       hit=cars(post(ctx,CAR_API,req),sid,cid,pickup,ret); found.extend(hit); checked.append({'id':sid,'name':name,'address':addr,'pickup':pickup,'return':ret,'count':len(hit),'return_open':return_open})
-     except Exception as e: failures.append({'id':sid,'name':name,'pickup':pickup,'return':ret,'reason':type(e).__name__})
+     except Exception as e:
+      failure={'id':sid,'name':name,'pickup':pickup,'return':ret,'reason':type(e).__name__}
+      if isinstance(e,SetupError): failure['detail']=str(e)
+      failures.append(failure)
    if failures and not checked: raise SetupError('所有网点查询失败')
-   return {'state':'possible' if found else 'notfound','matches':found,'checked':checked,'failures':failures,'warnings':warnings,'city_id':cid,'verified_utc':now(),'source':'official_web_api'}
+   return {'state':'possible' if found else ('unknown' if failures else 'notfound'),'health':'partial' if failures else 'ok','matches':found,'checked':checked,'failures':failures,'warnings':warnings,'city_id':cid,'verified_utc':now(),'source':'official_web_api'}
   finally:ctx.dispose()
 def bark(key,items):
  if not key:return False,'BARK_KEY_missing'
  title=urllib.parse.quote('大庆新能源车源新增',safe='')
- body=urllib.parse.quote('；'.join(f"{x['station_name']} {x['name']} ¥{x['price']} {x['pickup']}" for x in items),safe='')
+ body=urllib.parse.quote('；'.join(f"{x['station_name']} {x['name']} ¥{x['price']} {x['pickup']}至{x['return']}" for x in items),safe='')
  url='https://api.day.app/'+key+'/'+title+'/'+body
  req=urllib.request.Request(url,method='GET')
  try:
   with urllib.request.urlopen(req,timeout=20) as r:
-   return (True,'') if r.status==200 else (False,f'HTTP_{r.status}')
+   if r.status!=200:return False,f'HTTP_{r.status}'
+   try: reply=json.load(r)
+   except (ValueError,TypeError):return False,'invalid_json_response'
+   return (True,'') if isinstance(reply,dict) and reply.get('code')==200 else (False,'Bark_not_acknowledged')
  except urllib.error.HTTPError as e:return False,f'HTTP_{e.code}'
  except urllib.error.URLError as e:return False,f'URL_{type(e.reason).__name__}'
  except TimeoutError:return False,'timeout'
  except Exception as e:return False,type(e).__name__
+NOTIFICATION_SCHEMA=2
+def match_key(x):
+ return f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}"
+def notify_result(result,old,key,send=None):
+ """仅成功送达的车源进入去重集合；失败网点保持原通知状态。"""
+ if send is None:send=bark
+ old=old if isinstance(old,dict) else {}
+ # 旧版本 active 混入了未推送的车型，不能将其当作已送达凭据。
+ # 首次升级仅对本轮重新核验的车源补发一次，不使用历史库存发通知。
+ migrated=old.get('notification_schema')!=NOTIFICATION_SCHEMA
+ prev={} if migrated else old.get('active',{})
+ prev=prev if isinstance(prev,dict) else {}
+ current={match_key(x):x for x in result.get('matches',[])}
+ fresh=[x for k,x in current.items() if k not in prev] if result['state']=='possible' else []
+ pushed=False; push_error=''
+ if fresh:pushed,push_error=send(key,fresh)
+ verified={(str(x['id']),x['pickup'],x['return']) for x in result.get('checked',[])}
+ # 只移除明确查询成功且已不再符合条件的车源，不受局部失败影响。
+ active={k:x for k,x in prev.items() if (str(x['station_id']),x['pickup'],x['return']) not in verified or k in current}
+ if pushed:active.update(current)
+ result.update(notification_schema=NOTIFICATION_SCHEMA,notification_migrated=migrated,
+               active=active,new_count=len(fresh),push='sent' if pushed else ('failed' if fresh else 'not_triggered'))
+ if fresh:result['notification_reason']='verified_backfill_after_fix' if migrated else 'new_verified_matches'
+ if pushed:result['last_push_utc']=now()
+ elif old.get('last_push_utc'):result['last_push_utc']=old['last_push_utc']
+ if push_error:result['push_error']=push_error
+ result['health']='unknown' if result['state']=='unknown' else ('partial' if result.get('failures') else 'ok')
+ if result['push']=='failed':result['health']='push_failed'
+ return result
 def main():
- old=json.loads(STATE.read_text()) if STATE.exists() else {'active':{}}
- retry_failed=False
- if HISTORY.exists():
-  try:
-   prior=json.loads(HISTORY.read_text())
-   retry_failed=any(isinstance(x,dict) and x.get('push')=='failed' for x in (prior[-3:] if isinstance(prior,list) else []))
-  except Exception: pass
+ try:old=json.loads(STATE.read_text()) if STATE.exists() else {}
+ except (OSError,ValueError):old={}
  cutoff=datetime(2026,10,18,1,tzinfo=timezone.utc)
  if datetime.now(timezone.utc)>=cutoff: result={'state':'stopped','matches':[],'why':'监控租期已结束','verified_utc':now()}
  else:
   try: result=gather()
   except Exception as e: result={'state':'unknown','matches':[],'why':type(e).__name__,'verified_utc':now()}
- key=os.getenv('BARK_KEY',''); current={f"{x['station_id']}|{x['pickup']}|{x['return']}|{x['model_id']}":x for x in result.get('matches',[])}
- prev={} if retry_failed else (old.get('active',{}) if isinstance(old,dict) else {}); fresh=[]
- pushed=False; push_error=''
- if fresh:pushed,push_error=bark(key,fresh)
- if result['state']=='possible':
-  result['new_count']=len(fresh); result['push']='sent' if pushed else ('not_triggered' if not fresh else 'failed')
-  if push_error: result['push_error']=push_error
-  # Bark 失败时保留旧去重集合，下一轮继续重试，不把未送达车型标记为已通知。
-  newactive=current if (not fresh or pushed) else prev
- elif result['state']=='notfound': result['new_count']=0; result['push']='not_triggered'; newactive={}
- else: result['new_count']=0; result['push']='not_triggered'; newactive=prev
- result['active']=newactive; result['verified_utc']=result.get('verified_utc',now()); STATE.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n'); REPORT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+ result=notify_result(result,old,os.getenv('BARK_KEY',''))
+ result['verified_utc']=result.get('verified_utc',now()); STATE.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n'); REPORT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
  hist=[]
  if HISTORY.exists():
   try: hist=json.loads(HISTORY.read_text())
   except Exception: hist=[]
- hist=(hist if isinstance(hist,list) else [])+[{k:result.get(k) for k in ('state','new_count','push','verified_utc','checked','failures','warnings')}]; HISTORY.write_text(json.dumps(hist[-240:],ensure_ascii=False,indent=2)+'\n')
- print(json.dumps({k:result.get(k) for k in ('state','new_count','push','verified_utc')},ensure_ascii=False)); return 0 if result['state']!='unknown' else 1
+ hist=(hist if isinstance(hist,list) else [])+[{k:result.get(k) for k in ('state','health','new_count','push','push_error','notification_schema','notification_reason','verified_utc','checked','failures','warnings')}]; HISTORY.write_text(json.dumps(hist[-240:],ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({k:result.get(k) for k in ('state','health','new_count','push','push_error','verified_utc')},ensure_ascii=False)); return 0 if result['state']!='unknown' and result['push']!='failed' else 1
 if __name__=='__main__': raise SystemExit(main())
