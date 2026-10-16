@@ -63,6 +63,15 @@
       "return_open": true
     },
     {
+      "id": "118379",
+      "name": "大庆萨尔图机场自助点",
+      "address": "黑龙江省大庆市萨尔图区机场航站楼地上停车场",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00",
+      "count": 0,
+      "return_open": true
+    },
+    {
       "id": "93340",
       "name": "大庆西站高铁自助点",
       "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
@@ -101,14 +110,6 @@
   ],
   "failures": [
     {
-      "id": "118379",
-      "name": "大庆萨尔图机场自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    },
-    {
       "id": "88755",
       "name": "盛景商城自助点",
       "pickup": "2026-10-23 19:00",
@@ -127,7 +128,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-16T11:18:57+00:00",
+  "verified_utc": "2026-10-16T11:28:25+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
