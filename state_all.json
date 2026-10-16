@@ -5,7 +5,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "68",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "105485",
       "station_name": "大庆市人民政府自助点",
@@ -117,7 +117,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-16T05:00:17+00:00",
+  "verified_utc": "2026-10-16T05:09:44+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
