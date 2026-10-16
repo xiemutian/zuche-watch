@@ -13,7 +13,7 @@ HOME='https://m.zuche.com/'; CITY='大庆'; CITY_API='/action/carrctapi/order/ci
 # 神州接口把安达作为“大庆”城市联动网点返回；按实际租车范围纳入安达，排除杜尔伯特和肇东。
 INCLUDE_LINKED_STATION_IDS={'139846'}
 EXCLUDE_STATION_IDS={'95181','142920'}
-WINDOWS=[('2026-10-16 18:00','2026-10-17 18:00'),('2026-10-17 09:00','2026-10-18 09:00')]
+WINDOWS=[('2026-10-23 19:00','2026-10-24 19:00')]
 LIMIT=Decimal('150')
 NEV_RE=re.compile(r'(纯电|电动|新能源|插电|增程|特斯拉|理想|腾势|岚图|尚界|小鹏|蔚来|零跑|极氪|比亚迪|方程豹|阿维塔|智己|问界|鸿蒙智行|深蓝)',re.I)
 class SetupError(Exception): pass
@@ -143,7 +143,7 @@ def notify_result(result,old,key,send=None):
 def main():
  try:old=json.loads(STATE.read_text()) if STATE.exists() else {}
  except (OSError,ValueError):old={}
- cutoff=datetime(2026,10,18,1,tzinfo=timezone.utc)
+ cutoff=datetime(2026,10,23,11,tzinfo=timezone.utc)
  if datetime.now(timezone.utc)>=cutoff: result={'state':'stopped','matches':[],'why':'监控租期已结束','verified_utc':now()}
  else:
   try: result=gather()
