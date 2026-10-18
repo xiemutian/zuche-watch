@@ -15,7 +15,7 @@
     {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
-      "price": "148",
+      "price": "138",
       "inventory_type": 1,
       "station_id": "139846",
       "station_name": "安达市火车站自助点",
@@ -108,7 +108,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-18T07:01:22+00:00",
+  "verified_utc": "2026-10-18T07:10:51+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
