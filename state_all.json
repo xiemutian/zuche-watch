@@ -23,16 +23,6 @@
       "return": "2026-10-24 19:00"
     },
     {
-      "model_id": "5049",
-      "name": "日产N7",
-      "price": "128",
-      "inventory_type": 1,
-      "station_id": "105485",
-      "station_name": "大庆市人民政府自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    },
-    {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
       "price": "118",
@@ -69,7 +59,7 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 2,
+      "count": 1,
       "return_open": true
     },
     {
@@ -138,7 +128,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-21T03:21:18+00:00",
+  "verified_utc": "2026-10-21T03:30:49+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -210,16 +200,6 @@
       "inventory_type": 1,
       "station_id": "100529",
       "station_name": "让胡路万达广场自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    },
-    "105485|2026-10-23 19:00|2026-10-24 19:00|5049": {
-      "model_id": "5049",
-      "name": "日产N7",
-      "price": "128",
-      "inventory_type": 1,
-      "station_id": "105485",
-      "station_name": "大庆市人民政府自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
     },
