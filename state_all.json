@@ -13,6 +13,16 @@
       "return": "2026-10-24 19:00"
     },
     {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
+    },
+    {
       "model_id": "5049",
       "name": "日产N7",
       "price": "128",
@@ -69,7 +79,7 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 1,
+      "count": 2,
       "return_open": true
     },
     {
@@ -138,7 +148,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-22T03:01:19+00:00",
+  "verified_utc": "2026-10-22T03:10:47+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -196,7 +206,7 @@
     "88783|2026-10-23 19:00|2026-10-24 19:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "68",
+      "price": "88",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -232,9 +242,20 @@
       "station_name": "大庆市人民政府自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
+    },
+    "105485|2026-10-23 19:00|2026-10-24 19:00|4137": {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-10-22T00:20:29+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-10-22T03:10:48+00:00"
 }
