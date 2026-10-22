@@ -14,7 +14,7 @@ HOME='https://m.zuche.com/'; CITY='大庆'; CITY_API='/action/carrctapi/order/ci
 INCLUDE_LINKED_STATION_IDS={'139846'}
 EXCLUDE_STATION_IDS={'95181','142920'}
 WINDOWS=[('2026-10-23 19:00','2026-10-24 19:00')]
-LIMIT=Decimal('150')
+LIMIT=Decimal('200')
 NEV_RE=re.compile(r'(纯电|电动|新能源|插电|增程|特斯拉|理想|腾势|岚图|尚界|小鹏|蔚来|零跑|极氪|比亚迪|方程豹|阿维塔|智己|问界|鸿蒙智行|深蓝)',re.I)
 class SetupError(Exception): pass
 def now(): return datetime.now(timezone.utc).isoformat(timespec='seconds')
