@@ -106,7 +106,7 @@
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
       "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
+      "detail": "官网接口未返回明确成功结果"
     },
     {
       "id": "88755",
@@ -127,7 +127,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-22T13:55:03+00:00",
+  "verified_utc": "2026-10-22T14:04:43+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
