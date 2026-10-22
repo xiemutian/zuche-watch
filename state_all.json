@@ -25,7 +25,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "78",
+      "price": "68",
       "inventory_type": 1,
       "station_id": "100529",
       "station_name": "让胡路万达广场自助点",
@@ -117,7 +117,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-22T17:15:12+00:00",
+  "verified_utc": "2026-10-22T17:24:53+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
