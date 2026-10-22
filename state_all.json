@@ -3,16 +3,6 @@
   "health": "partial",
   "matches": [
     {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "88783",
-      "station_name": "大庆东站服务点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    },
-    {
       "model_id": "5033",
       "name": "长安深蓝S07",
       "price": "178",
@@ -50,7 +40,7 @@
       "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 1,
+      "count": 0,
       "return_open": true
     },
     {
@@ -127,7 +117,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-22T15:01:46+00:00",
+  "verified_utc": "2026-10-22T15:11:14+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -171,16 +161,6 @@
       "station_name": "大庆东站服务点",
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00"
-    },
-    "88783|2026-10-23 19:00|2026-10-24 19:00|2464": {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "88783",
-      "station_name": "大庆东站服务点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
     },
     "93340|2026-10-23 19:00|2026-10-24 19:00|4952": {
       "model_id": "4952",
