@@ -3,6 +3,16 @@
   "health": "partial",
   "matches": [
     {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
+    },
+    {
       "model_id": "5033",
       "name": "长安深蓝S07",
       "price": "178",
@@ -49,7 +59,7 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 0,
+      "count": 1,
       "return_open": true
     },
     {
@@ -117,7 +127,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-23T00:32:46+00:00",
+  "verified_utc": "2026-10-23T00:42:12+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -201,9 +211,20 @@
       "station_name": "让胡路万达广场自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
+    },
+    "105485|2026-10-23 19:00|2026-10-24 19:00|2464": {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-10-22T10:07:18+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-10-23T00:42:13+00:00"
 }
