@@ -1,113 +1,8 @@
 {
-  "state": "possible",
-  "health": "partial",
-  "matches": [
-    {
-      "model_id": "4952",
-      "name": "比亚迪海狮05",
-      "price": "98",
-      "inventory_type": 1,
-      "station_id": "93340",
-      "station_name": "大庆西站高铁自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    },
-    {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "139846",
-      "station_name": "安达市火车站自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    }
-  ],
-  "checked": [
-    {
-      "id": "88783",
-      "name": "大庆东站服务点",
-      "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "count": 0,
-      "return_open": true
-    },
-    {
-      "id": "105485",
-      "name": "大庆市人民政府自助点",
-      "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "count": 0,
-      "return_open": true
-    },
-    {
-      "id": "93340",
-      "name": "大庆西站高铁自助点",
-      "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "count": 1,
-      "return_open": true
-    },
-    {
-      "id": "139846",
-      "name": "安达市火车站自助点",
-      "address": "黑龙江省绥化市安达市安达站前广场侧停车场",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "count": 1,
-      "return_open": true
-    },
-    {
-      "id": "100529",
-      "name": "让胡路万达广场自助点",
-      "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "count": 0,
-      "return_open": true
-    }
-  ],
-  "failures": [
-    {
-      "id": "118379",
-      "name": "大庆萨尔图机场自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    },
-    {
-      "id": "95174",
-      "name": "摩码广场自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    },
-    {
-      "id": "88755",
-      "name": "盛景商城自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    }
-  ],
-  "warnings": [
-    {
-      "id": "88755",
-      "name": "盛景商城自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00",
-      "reason": "lease_dept_hidden_or_no_inventory"
-    }
-  ],
-  "city_id": "87",
-  "verified_utc": "2026-10-23T10:30:08+00:00",
-  "source": "official_web_api",
+  "state": "unknown",
+  "matches": [],
+  "why": "SetupError",
+  "verified_utc": "2026-10-23T10:39:34+00:00",
   "notification_schema": 2,
   "notification_migrated": false,
   "active": {
@@ -174,5 +69,6 @@
   },
   "new_count": 0,
   "push": "not_triggered",
-  "last_push_utc": "2026-10-23T10:01:45+00:00"
+  "last_push_utc": "2026-10-23T10:01:45+00:00",
+  "health": "unknown"
 }
