@@ -23,12 +23,12 @@
       "return": "2026-10-24 19:00"
     },
     {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
+      "model_id": "4607",
+      "name": "比亚迪汉",
+      "price": "128",
       "inventory_type": 1,
-      "station_id": "100529",
-      "station_name": "让胡路万达广场自助点",
+      "station_id": "139846",
+      "station_name": "安达市火车站自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
     }
@@ -76,7 +76,7 @@
       "address": "黑龙江省绥化市安达市安达站前广场侧停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 1,
+      "count": 2,
       "return_open": true
     },
     {
@@ -94,7 +94,7 @@
       "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 1,
+      "count": 0,
       "return_open": true
     }
   ],
@@ -118,7 +118,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-23T06:04:33+00:00",
+  "verified_utc": "2026-10-23T10:01:44+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -163,16 +163,6 @@
       "pickup": "2026-10-16 18:00",
       "return": "2026-10-17 18:00"
     },
-    "100529|2026-10-23 19:00|2026-10-24 19:00|2464": {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "100529",
-      "station_name": "让胡路万达广场自助点",
-      "pickup": "2026-10-23 19:00",
-      "return": "2026-10-24 19:00"
-    },
     "93340|2026-10-23 19:00|2026-10-24 19:00|4952": {
       "model_id": "4952",
       "name": "比亚迪海狮05",
@@ -192,9 +182,20 @@
       "station_name": "安达市火车站自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
+    },
+    "139846|2026-10-23 19:00|2026-10-24 19:00|4607": {
+      "model_id": "4607",
+      "name": "比亚迪汉",
+      "price": "128",
+      "inventory_type": 1,
+      "station_id": "139846",
+      "station_name": "安达市火车站自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-10-23T03:23:15+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-10-23T10:01:45+00:00"
 }
