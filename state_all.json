@@ -3,6 +3,16 @@
   "health": "partial",
   "matches": [
     {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "93340",
+      "station_name": "大庆西站高铁自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
+    },
+    {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
       "price": "158",
@@ -57,7 +67,7 @@
       "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00",
-      "count": 0,
+      "count": 1,
       "return_open": true
     },
     {
@@ -108,7 +118,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-23T02:26:16+00:00",
+  "verified_utc": "2026-10-23T02:35:44+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -172,9 +182,20 @@
       "station_name": "让胡路万达广场自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
+    },
+    "93340|2026-10-23 19:00|2026-10-24 19:00|4952": {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "93340",
+      "station_name": "大庆西站高铁自助点",
+      "pickup": "2026-10-23 19:00",
+      "return": "2026-10-24 19:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-10-23T01:48:23+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-10-23T02:35:45+00:00"
 }
