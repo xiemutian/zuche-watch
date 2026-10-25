@@ -2,7 +2,7 @@
   "state": "stopped",
   "matches": [],
   "why": "监控租期已结束",
-  "verified_utc": "2026-10-25T06:51:04+00:00",
+  "verified_utc": "2026-10-25T12:18:08+00:00",
   "notification_schema": 2,
   "notification_migrated": false,
   "active": {
