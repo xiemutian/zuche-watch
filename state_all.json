@@ -1,8 +1,8 @@
 {
-  "state": "stopped",
+  "state": "unknown",
   "matches": [],
-  "why": "监控租期已结束",
-  "verified_utc": "2026-10-29T00:13:30+00:00",
+  "why": "ModuleNotFoundError",
+  "verified_utc": "2026-10-29T04:02:36+00:00",
   "notification_schema": 2,
   "notification_migrated": false,
   "active": {
@@ -70,5 +70,5 @@
   "new_count": 0,
   "push": "not_triggered",
   "last_push_utc": "2026-10-23T10:01:45+00:00",
-  "health": "ok"
+  "health": "unknown"
 }
