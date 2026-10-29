@@ -158,7 +158,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-29T16:26:19+00:00",
+  "verified_utc": "2026-10-29T16:36:00+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
