@@ -1,8 +1,175 @@
 {
-  "state": "unknown",
-  "matches": [],
-  "why": "ModuleNotFoundError",
-  "verified_utc": "2026-10-29T04:02:36+00:00",
+  "state": "possible",
+  "health": "partial",
+  "matches": [
+    {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "5049",
+      "name": "日产N7",
+      "price": "128",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "93340",
+      "station_name": "大庆西站高铁自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "139846",
+      "station_name": "安达市火车站自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "95174",
+      "station_name": "摩码广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "100529",
+      "station_name": "让胡路万达广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    }
+  ],
+  "checked": [
+    {
+      "id": "88783",
+      "name": "大庆东站服务点",
+      "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 2,
+      "return_open": true
+    },
+    {
+      "id": "105485",
+      "name": "大庆市人民政府自助点",
+      "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 2,
+      "return_open": true
+    },
+    {
+      "id": "118379",
+      "name": "大庆萨尔图机场自助点",
+      "address": "黑龙江省大庆市萨尔图区机场航站楼地上停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 0,
+      "return_open": true
+    },
+    {
+      "id": "93340",
+      "name": "大庆西站高铁自助点",
+      "address": "黑龙江省大庆市让胡路区大庆西站地下停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 1,
+      "return_open": true
+    },
+    {
+      "id": "139846",
+      "name": "安达市火车站自助点",
+      "address": "黑龙江省绥化市安达市安达站前广场侧停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 1,
+      "return_open": true
+    },
+    {
+      "id": "95174",
+      "name": "摩码广场自助点",
+      "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 1,
+      "return_open": true
+    },
+    {
+      "id": "100529",
+      "name": "让胡路万达广场自助点",
+      "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 1,
+      "return_open": true
+    }
+  ],
+  "failures": [
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "reason": "SetupError",
+      "detail": "缺少指定网点完整车型列表"
+    }
+  ],
+  "warnings": [
+    {
+      "id": "88755",
+      "name": "盛景商城自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "reason": "lease_dept_hidden_or_no_inventory"
+    }
+  ],
+  "city_id": "87",
+  "verified_utc": "2026-10-29T04:03:57+00:00",
+  "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
   "active": {
@@ -65,10 +232,90 @@
       "station_name": "安达市火车站自助点",
       "pickup": "2026-10-23 19:00",
       "return": "2026-10-24 19:00"
+    },
+    "88783|2026-11-06 21:00|2026-11-07 21:00|2464": {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "88783|2026-11-06 21:00|2026-11-07 21:00|5049": {
+      "model_id": "5049",
+      "name": "日产N7",
+      "price": "128",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "105485|2026-11-06 21:00|2026-11-07 21:00|4952": {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "105485|2026-11-06 21:00|2026-11-07 21:00|4137": {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "93340|2026-11-06 21:00|2026-11-07 21:00|4952": {
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "98",
+      "inventory_type": 1,
+      "station_id": "93340",
+      "station_name": "大庆西站高铁自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "139846|2026-11-06 21:00|2026-11-07 21:00|4137": {
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "118",
+      "inventory_type": 1,
+      "station_id": "139846",
+      "station_name": "安达市火车站自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "95174|2026-11-06 21:00|2026-11-07 21:00|2464": {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "95174",
+      "station_name": "摩码广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    "100529|2026-11-06 21:00|2026-11-07 21:00|2464": {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "100529",
+      "station_name": "让胡路万达广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-10-23T10:01:45+00:00",
-  "health": "unknown"
+  "new_count": 8,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-10-29T04:03:58+00:00"
 }
