@@ -178,7 +178,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-30T10:11:53+00:00",
+  "verified_utc": "2026-10-30T10:21:24+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -334,8 +334,7 @@
       "return": "2026-11-07 21:00"
     }
   },
-  "new_count": 1,
-  "push": "sent",
-  "notification_reason": "new_verified_matches",
+  "new_count": 0,
+  "push": "not_triggered",
   "last_push_utc": "2026-10-30T10:11:54+00:00"
 }
