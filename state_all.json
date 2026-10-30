@@ -13,16 +13,6 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "105485",
-      "station_name": "大庆市人民政府自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    {
       "model_id": "4952",
       "name": "比亚迪海狮05",
       "price": "98",
@@ -109,7 +99,7 @@
       "address": "黑龙江省大庆市萨尔图区东风路19号人民政府停车场",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 3,
+      "count": 2,
       "return_open": true
     },
     {
@@ -178,7 +168,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-10-30T08:24:10+00:00",
+  "verified_utc": "2026-10-30T08:33:37+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -320,16 +310,6 @@
       "inventory_type": 1,
       "station_id": "139846",
       "station_name": "安达市火车站自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    "105485|2026-11-06 21:00|2026-11-07 21:00|2464": {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "68",
-      "inventory_type": 1,
-      "station_id": "105485",
-      "station_name": "大庆市人民政府自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
     }
