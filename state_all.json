@@ -43,16 +43,6 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "4137",
-      "name": "比亚迪宋Pro新能源",
-      "price": "118",
-      "inventory_type": 1,
-      "station_id": "139846",
-      "station_name": "安达市火车站自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
       "price": "68",
@@ -126,7 +116,7 @@
       "address": "黑龙江省绥化市安达市安达站前广场侧停车场",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 1,
+      "count": 0,
       "return_open": true
     },
     {
@@ -168,7 +158,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-11-03T01:26:26+00:00",
+  "verified_utc": "2026-11-03T01:35:58+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -240,16 +230,6 @@
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    "139846|2026-11-06 21:00|2026-11-07 21:00|4137": {
-      "model_id": "4137",
-      "name": "比亚迪宋Pro新能源",
-      "price": "118",
-      "inventory_type": 1,
-      "station_id": "139846",
-      "station_name": "安达市火车站自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
     },
