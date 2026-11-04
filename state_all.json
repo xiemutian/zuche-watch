@@ -15,7 +15,7 @@
     {
       "model_id": "4952",
       "name": "比亚迪海狮05",
-      "price": "98",
+      "price": "88",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -25,10 +25,20 @@
     {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
-      "price": "138",
+      "price": "98",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "4639",
+      "name": "比亚迪海豹05",
+      "price": "68",
+      "inventory_type": 1,
+      "station_id": "105485",
+      "station_name": "大庆市人民政府自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
     },
@@ -43,19 +53,9 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "4639",
-      "name": "比亚迪海豹05",
-      "price": "88",
-      "inventory_type": 1,
-      "station_id": "105485",
-      "station_name": "大庆市人民政府自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
-      "price": "138",
+      "price": "98",
       "inventory_type": 1,
       "station_id": "139846",
       "station_name": "安达市火车站自助点",
@@ -178,7 +178,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-11-04T02:47:59+00:00",
+  "verified_utc": "2026-11-04T02:57:32+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
