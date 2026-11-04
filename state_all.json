@@ -75,7 +75,7 @@
     {
       "model_id": "4613",
       "name": "特斯拉Model3",
-      "price": "198",
+      "price": "178",
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
@@ -178,7 +178,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-11-04T02:57:32+00:00",
+  "verified_utc": "2026-11-04T03:07:01+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
