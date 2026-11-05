@@ -1,11 +1,11 @@
 {
   "state": "possible",
-  "health": "partial",
+  "health": "ok",
   "matches": [
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "68",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -35,7 +35,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "68",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
@@ -45,7 +45,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "68",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "100529",
       "station_name": "让胡路万达广场自助点",
@@ -118,27 +118,10 @@
       "return_open": true
     }
   ],
-  "failures": [
-    {
-      "id": "88755",
-      "name": "盛景商城自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    }
-  ],
-  "warnings": [
-    {
-      "id": "88755",
-      "name": "盛景商城自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00",
-      "reason": "lease_dept_hidden_or_no_inventory"
-    }
-  ],
+  "failures": [],
+  "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-05T15:55:02+00:00",
+  "verified_utc": "2026-11-05T17:41:16+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
