@@ -13,9 +13,9 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "4137",
-      "name": "比亚迪宋Pro新能源",
-      "price": "78",
+      "model_id": "4952",
+      "name": "比亚迪海狮05",
+      "price": "88",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -23,9 +23,9 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "4952",
-      "name": "比亚迪海狮05",
-      "price": "88",
+      "model_id": "4137",
+      "name": "比亚迪宋Pro新能源",
+      "price": "98",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -138,7 +138,7 @@
     }
   ],
   "city_id": "87",
-  "verified_utc": "2026-11-05T13:03:24+00:00",
+  "verified_utc": "2026-11-05T13:12:54+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
