@@ -23,6 +23,16 @@
       "return": "2026-11-07 21:00"
     },
     {
+      "model_id": "4607",
+      "name": "比亚迪汉",
+      "price": "188",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
       "price": "68",
@@ -70,7 +80,7 @@
       "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 2,
+      "count": 3,
       "return_open": true
     },
     {
@@ -131,7 +141,7 @@
   ],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T11:36:12+00:00",
+  "verified_utc": "2026-11-06T11:45:38+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -199,7 +209,7 @@
     "88783|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "78",
+      "price": "68",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -219,7 +229,7 @@
     "95174|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "78",
+      "price": "68",
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
@@ -239,7 +249,7 @@
     "105485|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "78",
+      "price": "68",
       "inventory_type": 1,
       "station_id": "105485",
       "station_name": "大庆市人民政府自助点",
@@ -249,15 +259,26 @@
     "100529|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "78",
+      "price": "68",
       "inventory_type": 1,
       "station_id": "100529",
       "station_name": "让胡路万达广场自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
+    },
+    "88783|2026-11-06 21:00|2026-11-07 21:00|4607": {
+      "model_id": "4607",
+      "name": "比亚迪汉",
+      "price": "188",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-11-06T08:17:01+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-11-06T11:45:39+00:00"
 }
