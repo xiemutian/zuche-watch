@@ -1,6 +1,6 @@
 {
   "state": "possible",
-  "health": "partial",
+  "health": "ok",
   "matches": [
     {
       "model_id": "2464",
@@ -101,6 +101,15 @@
       "return_open": true
     },
     {
+      "id": "139846",
+      "name": "安达市火车站自助点",
+      "address": "黑龙江省绥化市安达市安达站前广场侧停车场",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "count": 0,
+      "return_open": true
+    },
+    {
       "id": "95174",
       "name": "摩码广场自助点",
       "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
@@ -119,19 +128,10 @@
       "return_open": true
     }
   ],
-  "failures": [
-    {
-      "id": "139846",
-      "name": "安达市火车站自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00",
-      "reason": "SetupError",
-      "detail": "缺少指定网点完整车型列表"
-    }
-  ],
+  "failures": [],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T06:51:47+00:00",
+  "verified_utc": "2026-11-06T07:01:17+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
