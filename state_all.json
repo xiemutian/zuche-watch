@@ -33,16 +33,6 @@
       "return": "2026-11-07 21:00"
     },
     {
-      "model_id": "5049",
-      "name": "日产N7",
-      "price": "98",
-      "inventory_type": 1,
-      "station_id": "88783",
-      "station_name": "大庆东站服务点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
       "price": "78",
@@ -80,7 +70,7 @@
       "address": "黑龙江省大庆市龙凤区万峰南路与民安路交叉口东150米大庆东站西停车场",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 4,
+      "count": 3,
       "return_open": true
     },
     {
@@ -141,7 +131,7 @@
   ],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T06:32:53+00:00",
+  "verified_utc": "2026-11-06T06:42:20+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -253,16 +243,6 @@
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    "88783|2026-11-06 21:00|2026-11-07 21:00|5049": {
-      "model_id": "5049",
-      "name": "日产N7",
-      "price": "98",
-      "inventory_type": 1,
-      "station_id": "88783",
-      "station_name": "大庆东站服务点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
     },
