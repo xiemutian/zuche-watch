@@ -53,6 +53,16 @@
       "return": "2026-11-07 21:00"
     },
     {
+      "model_id": "4613",
+      "name": "特斯拉Model3",
+      "price": "178",
+      "inventory_type": 1,
+      "station_id": "95174",
+      "station_name": "摩码广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
       "price": "78",
@@ -115,7 +125,7 @@
       "address": "黑龙江省大庆市龙凤区博学大街与新阳路交叉口南行500米",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 1,
+      "count": 2,
       "return_open": true
     },
     {
@@ -131,7 +141,7 @@
   "failures": [],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T05:54:46+00:00",
+  "verified_utc": "2026-11-06T06:04:16+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -199,7 +209,7 @@
     "88783|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -209,7 +219,7 @@
     "100529|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "100529",
       "station_name": "让胡路万达广场自助点",
@@ -219,7 +229,7 @@
     "88783|2026-11-06 21:00|2026-11-07 21:00|4137": {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -239,7 +249,7 @@
     "95174|2026-11-06 21:00|2026-11-07 21:00|2464": {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
@@ -255,9 +265,20 @@
       "station_name": "大庆东站服务点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
+    },
+    "95174|2026-11-06 21:00|2026-11-07 21:00|4613": {
+      "model_id": "4613",
+      "name": "特斯拉Model3",
+      "price": "178",
+      "inventory_type": 1,
+      "station_id": "95174",
+      "station_name": "摩码广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-11-06T03:04:05+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-11-06T06:04:17+00:00"
 }
