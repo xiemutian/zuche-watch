@@ -1,7 +1,17 @@
 {
   "state": "possible",
-  "health": "ok",
+  "health": "partial",
   "matches": [
+    {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "78",
+      "inventory_type": 1,
+      "station_id": "88783",
+      "station_name": "大庆东站服务点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
     {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
@@ -15,17 +25,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "98",
-      "inventory_type": 1,
-      "station_id": "88783",
-      "station_name": "大庆东站服务点",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00"
-    },
-    {
-      "model_id": "2464",
-      "name": "比亚迪秦PLUS",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "105485",
       "station_name": "大庆市人民政府自助点",
@@ -35,7 +35,7 @@
     {
       "model_id": "2464",
       "name": "比亚迪秦PLUS",
-      "price": "98",
+      "price": "78",
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
@@ -49,6 +49,16 @@
       "inventory_type": 1,
       "station_id": "95174",
       "station_name": "摩码广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
+    },
+    {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "78",
+      "inventory_type": 1,
+      "station_id": "100529",
+      "station_name": "让胡路万达广场自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
     }
@@ -70,15 +80,6 @@
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
       "count": 1,
-      "return_open": true
-    },
-    {
-      "id": "118379",
-      "name": "大庆萨尔图机场自助点",
-      "address": "黑龙江省大庆市萨尔图区机场航站楼地上停车场",
-      "pickup": "2026-11-06 21:00",
-      "return": "2026-11-07 21:00",
-      "count": 0,
       "return_open": true
     },
     {
@@ -114,14 +115,23 @@
       "address": "黑龙江省大庆市让胡路区中央南大街与求实路交汇口南行100米",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00",
-      "count": 0,
+      "count": 1,
       "return_open": true
     }
   ],
-  "failures": [],
+  "failures": [
+    {
+      "id": "118379",
+      "name": "大庆萨尔图机场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00",
+      "reason": "SetupError",
+      "detail": "缺少指定网点完整车型列表"
+    }
+  ],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T08:07:33+00:00",
+  "verified_utc": "2026-11-06T08:17:00+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
@@ -235,9 +245,20 @@
       "station_name": "大庆市人民政府自助点",
       "pickup": "2026-11-06 21:00",
       "return": "2026-11-07 21:00"
+    },
+    "100529|2026-11-06 21:00|2026-11-07 21:00|2464": {
+      "model_id": "2464",
+      "name": "比亚迪秦PLUS",
+      "price": "78",
+      "inventory_type": 1,
+      "station_id": "100529",
+      "station_name": "让胡路万达广场自助点",
+      "pickup": "2026-11-06 21:00",
+      "return": "2026-11-07 21:00"
     }
   },
-  "new_count": 0,
-  "push": "not_triggered",
-  "last_push_utc": "2026-11-06T07:48:34+00:00"
+  "new_count": 1,
+  "push": "sent",
+  "notification_reason": "new_verified_matches",
+  "last_push_utc": "2026-11-06T08:17:01+00:00"
 }
