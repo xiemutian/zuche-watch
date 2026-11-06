@@ -15,7 +15,7 @@
     {
       "model_id": "4137",
       "name": "比亚迪宋Pro新能源",
-      "price": "78",
+      "price": "98",
       "inventory_type": 1,
       "station_id": "88783",
       "station_name": "大庆东站服务点",
@@ -131,7 +131,7 @@
   ],
   "warnings": [],
   "city_id": "87",
-  "verified_utc": "2026-11-06T09:42:18+00:00",
+  "verified_utc": "2026-11-06T09:51:46+00:00",
   "source": "official_web_api",
   "notification_schema": 2,
   "notification_migrated": false,
