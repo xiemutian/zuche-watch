@@ -1,8 +1,8 @@
 {
-  "state": "unknown",
+  "state": "stopped",
   "matches": [],
-  "why": "SetupError",
-  "verified_utc": "2026-11-07T12:56:26+00:00",
+  "why": "监控租期已结束",
+  "verified_utc": "2026-11-07T13:05:43+00:00",
   "notification_schema": 2,
   "notification_migrated": false,
   "active": {
@@ -140,5 +140,5 @@
   "new_count": 0,
   "push": "not_triggered",
   "last_push_utc": "2026-11-06T11:45:39+00:00",
-  "health": "unknown"
+  "health": "ok"
 }
